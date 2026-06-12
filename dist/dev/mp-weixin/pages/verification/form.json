@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "车商认证",
+  "usingComponents": {
+    "address-map-picker": "../../components/address-map-picker/address-map-picker",
+    "region-picker": "../../components/region-picker/region-picker"
+  }
+}

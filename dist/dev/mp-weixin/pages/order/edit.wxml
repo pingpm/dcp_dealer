@@ -1,0 +1,1 @@
+<view class="page edit-order-page"><view class="section edit-disclaimer-card"><view class="section-title">订单修改</view><view class="subtle edit-desc"> 当前订单暂不支持在线修改。请返回订单详情联系承运商确认订单信息，或在允许取消时重新发起订单。 </view></view><view class="fixed-footer"><button class="primary-btn back-btn" bindtap="{{a}}">返回订单详情</button></view></view>

@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "填写订单",
+  "usingComponents": {
+    "dealer-order-form": "../../components/dealer-order-form/dealer-order-form"
+  }
+}

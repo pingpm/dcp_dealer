@@ -1,0 +1,63 @@
+.drivers-page {
+  padding: 30rpx;
+  background-color: transparent;
+}
+.order-summary-card,
+.driver-card {
+  background: #ffffff;
+}
+.summary-route {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  margin-top: 18rpx;
+}
+.summary-city {
+  color: #111827;
+  font-size: 30rpx;
+  font-weight: 800;
+}
+.summary-arrow {
+  color: var(--primary-color);
+  font-size: 28rpx;
+  font-weight: 800;
+}
+.summary-no {
+  margin-top: 12rpx;
+  color: var(--text-weak);
+  font-size: 22rpx;
+}
+.driver-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 22rpx;
+}
+.driver-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24rpx;
+  font-size: 26rpx;
+}
+.driver-label {
+  flex-shrink: 0;
+  color: #4b5563;
+}
+.driver-value {
+  color: #111827;
+  font-weight: 650;
+  text-align: right;
+  line-height: 1.45;
+}
+.font-mono {
+  font-family: monospace;
+}
+.driver-empty-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220rpx;
+  color: var(--text-weak);
+  font-size: 24rpx;
+  background: #ffffff;
+}

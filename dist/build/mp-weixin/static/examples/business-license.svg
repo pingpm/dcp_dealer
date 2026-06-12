@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+  <rect width="320" height="320" rx="24" fill="#fff7ed"/>
+  <rect x="52" y="38" width="216" height="244" rx="12" fill="#ffffff" stroke="#fb923c" stroke-width="6"/>
+  <rect x="88" y="78" width="144" height="24" rx="12" fill="#fed7aa"/>
+  <rect x="82" y="124" width="156" height="14" rx="7" fill="#fdba74"/>
+  <rect x="82" y="154" width="116" height="14" rx="7" fill="#fdba74"/>
+  <rect x="82" y="184" width="142" height="14" rx="7" fill="#fdba74"/>
+  <rect x="82" y="214" width="96" height="14" rx="7" fill="#fdba74"/>
+  <circle cx="224" cy="226" r="28" fill="#ffedd5" stroke="#fb923c" stroke-width="5"/>
+  <path d="M211 226h26M224 213v26" stroke="#fb923c" stroke-width="5" stroke-linecap="round"/>
+  <text x="160" y="302" text-anchor="middle" fill="#9a3412" font-size="22" font-family="Arial, sans-serif" font-weight="700">营业执照示例</text>
+</svg>

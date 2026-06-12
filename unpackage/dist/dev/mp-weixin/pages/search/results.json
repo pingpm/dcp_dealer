@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "搜索结果",
+  "usingComponents": {
+    "dealer-icon": "../../components/dealer-icon/dealer-icon"
+  }
+}

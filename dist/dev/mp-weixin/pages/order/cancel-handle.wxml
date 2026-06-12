@@ -1,0 +1,1 @@
+<view class="page cancel-handle-page"><view class="section handle-card"><view class="section-title">处理取消申请</view><view class="subtle handle-desc"> 当前取消申请详情暂不可处理，请返回订单详情查看最新状态或联系平台协助处理。 </view></view><view class="fixed-footer"><button class="primary-btn back-btn" bindtap="{{a}}">返回订单列表</button></view></view>

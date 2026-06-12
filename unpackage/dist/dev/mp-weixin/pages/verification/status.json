@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "认证状态",
+  "usingComponents": {
+    "dealer-icon": "../../components/dealer-icon/dealer-icon"
+  }
+}

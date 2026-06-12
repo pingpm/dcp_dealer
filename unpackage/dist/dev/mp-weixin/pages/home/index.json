@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "运车管家",
+  "usingComponents": {
+    "region-picker": "../../components/region-picker/region-picker",
+    "dealer-icon": "../../components/dealer-icon/dealer-icon"
+  }
+}

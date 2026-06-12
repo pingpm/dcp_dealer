@@ -1,0 +1,7 @@
+{
+  "component": true,
+  "usingComponents": {
+    "address-map-picker": "../address-map-picker/address-map-picker",
+    "region-picker": "../region-picker/region-picker"
+  }
+}

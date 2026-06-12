@@ -1,0 +1,361 @@
+
+.order-list-page {
+  padding: 96rpx 0 0;
+  background-color: transparent;
+}
+.order-guest-card {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  top: 120rpx;
+  z-index: 120;
+  margin: 0;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.order-guest-card .guest-prompt-main {
+  min-width: 0;
+}
+.order-guest-card .one-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Custom scrolling tab bar V2 styles */
+.tabs-scroll-container {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 110;
+  background: #ffffff;
+  border-bottom: 1rpx solid #f1f5f9;
+  box-shadow: 0 4rpx 16rpx rgba(31, 35, 41, 0.03);
+}
+.tabs-wrapper-v2 {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 96rpx;
+  padding: 0 10rpx;
+}
+.tab-item-v2 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  position: relative;
+  padding: 0 16rpx;
+  cursor: pointer;
+}
+.tab-label-v2 {
+  font-size: 26rpx;
+  color: var(--text-weak);
+  font-weight: 700;
+  transition: all 0.25s ease;
+}
+.tab-underline-v2 {
+  position: absolute;
+  bottom: 0;
+  width: 44rpx;
+  height: 6rpx;
+  background-color: var(--primary-color);
+  border-radius: 4rpx;
+}
+.tab-item-v2.active .tab-label-v2 {
+  color: var(--text-main);
+  font-size: 28rpx;
+}
+
+/* Empty State V2 */
+.empty-orders-card-v2 {
+  padding: 140rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-radius: var(--radius-lg);
+  border: 1rpx solid var(--border-color);
+}
+.empty-visual-v2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 70rpx;
+  background: #f1f5f9;
+  color: var(--text-weak);
+  font-size: 54rpx;
+  margin-bottom: 24rpx;
+}
+.empty-text-v2 {
+  font-size: 28rpx;
+  font-weight: 800;
+  color: var(--text-weak);
+}
+.empty-subtext-v2 {
+  font-size: 22rpx;
+  color: var(--text-weak);
+  margin-top: 10rpx;
+  margin-bottom: 40rpx;
+}
+.empty-btn-v2 {
+  background: var(--primary-gradient);
+  min-width: 240rpx;
+  height: 80rpx;
+  border-radius: 40rpx;
+  font-size: 26rpx;
+  font-weight: 800;
+  box-shadow: 0 6rpx 16rpx rgba(249, 115, 22, 0.15);
+}
+
+/* V2 Order List Card layout */
+.order-list-card-v2 {
+  padding: 32rpx;
+  margin: 24rpx;
+  box-shadow: var(--shadow-sm);
+  border: 1rpx solid rgba(226, 232, 240, 0.7);
+  position: relative;
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  transition: all 0.2s ease;
+}
+.order-list-card-v2:active {
+  background-color: #f8fafc;
+}
+.order-card-header-v2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.carrier-name-block-v2 {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+.carrier-icon-v2 {
+  width: 34rpx;
+  height: 34rpx;
+  flex-shrink: 0;
+}
+.carrier-company-name-v2 {
+  font-size: 28rpx;
+  color: var(--text-main);
+}
+.order-status-badge-v2 {
+  font-size: 24rpx;
+  font-weight: 800;
+  color: var(--primary-color);
+}
+
+/* Status colors map */
+.order-status-badge-v2.warning {
+  color: var(--warning-color);
+}
+.order-status-badge-v2.info {
+  color: var(--info-color);
+}
+.order-status-badge-v2.success {
+  color: var(--success-color);
+}
+.order-status-badge-v2.danger {
+  color: var(--danger-color);
+}
+.order-meta-details-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-top: 12rpx;
+  border-bottom: 1rpx solid #f1f5f9;
+  padding-bottom: 16rpx;
+}
+.order-no-text {
+  font-size: 20rpx;
+  color: var(--text-weak);
+}
+.mini-tag-v2 {
+  min-height: 36rpx !important;
+  font-size: 16rpx !important;
+  padding: 0 10rpx !important;
+  border-radius: 6rpx !important;
+  line-height: 1.4;
+}
+
+/* Route details */
+.order-card-route-v2 {
+  padding: 28rpx 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  border-bottom: 1rpx dashed #f1f5f9;
+}
+.route-point-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.route-point-block-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+.route-point-block-v2 + .route-point-block-v2 {
+  margin-top: 28rpx;
+}
+.route-bullet {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 8rpx;
+  color: #ffffff;
+  font-size: 20rpx;
+  font-weight: 800;
+  line-height: 36rpx;
+  text-align: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+.route-bullet.origin {
+  background: linear-gradient(135deg, #fb923c, var(--primary-color));
+}
+.route-bullet.destination {
+  background: linear-gradient(135deg, #fb7185, #ef4444);
+}
+.route-city-lbl {
+  font-size: 28rpx;
+  font-weight: 800;
+  color: var(--text-main);
+}
+.subtle-addr {
+  color: var(--text-weak);
+  font-size: 24rpx;
+}
+.route-connector-line-v2 {
+  width: 2rpx;
+  position: absolute;
+  left: 17rpx;
+  top: 62rpx;
+  height: 78rpx;
+  background: #fed7aa;
+  border-radius: 2rpx;
+  z-index: 1;
+}
+.route-service-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  min-width: 0;
+  padding-left: 48rpx;
+}
+.service-tag {
+  flex-shrink: 0;
+  min-width: 86rpx;
+  padding: 4rpx 10rpx;
+  border-radius: 6rpx;
+  background: #f3f4f6;
+  color: #9ca3af;
+  font-size: 20rpx;
+  font-weight: 750;
+  text-align: center;
+}
+.service-tag.active {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+.service-address {
+  flex: 1;
+  min-width: 0;
+  color: #4b5563;
+  font-size: 22rpx;
+}
+.one-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Cost & details bottom row */
+.order-card-cost-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 24rpx 0;
+}
+.order-time-display {
+  font-size: 22rpx;
+  color: var(--text-weak);
+}
+.price-line-v2 {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+}
+.price-symbol-v2 {
+  font-size: 22rpx;
+  color: var(--text-main);
+  font-weight: 600;
+}
+.price-val-v2 {
+  font-size: 34rpx;
+  color: var(--text-main);
+}
+.price-unit-v2 {
+  color: var(--text-main);
+  font-size: 24rpx;
+  font-weight: 700;
+}
+.price-subtext-v2 {
+  font-size: 20rpx;
+  color: var(--text-weak);
+  margin-top: 4rpx;
+}
+.order-timing-tip-v2 {
+  margin: 0 0 22rpx;
+  padding: 14rpx 18rpx;
+  border-radius: 8rpx;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 22rpx;
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+/* Card Actions button block */
+.order-card-actions-v2 {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16rpx;
+}
+.card-action-btn-v2 {
+  min-height: 68rpx !important;
+  font-size: 24rpx !important;
+  padding: 0 32rpx !important;
+  border-radius: 34rpx !important;
+  font-weight: 800 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  border-width: 1.5rpx !important;
+}
+.secondary-btn.card-action-btn-v2 {
+  border-color: var(--primary-color) !important;
+  color: var(--primary-color) !important;
+  background: #ffffff !important;
+}
+.secondary-btn.card-action-btn-v2:active {
+  background: var(--primary-light) !important;
+}
+.primary-btn.card-action-btn-v2 {
+  background: var(--primary-gradient) !important;
+  color: #ffffff !important;
+}
+.primary-btn.card-action-btn-v2:active {
+  box-shadow: 0 2rpx 8rpx rgba(249, 115, 22, 0.15) !important;
+}
+.width-full {
+  width: 100%;
+}

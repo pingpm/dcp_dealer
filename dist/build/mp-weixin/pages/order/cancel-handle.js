@@ -1,0 +1,1 @@
+"use strict";const r=require("../../common/vendor.js"),e={methods:{goOrders(){r.index.switchTab({url:"/pages/order/list"})}}};const o=r._export_sfc(e,[["render",function(e,o,s,t,n,c){return{a:r.o((...r)=>c.goOrders&&c.goOrders(...r),"a9")}}]]);wx.createPage(o);

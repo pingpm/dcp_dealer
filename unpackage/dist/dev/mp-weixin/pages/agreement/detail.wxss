@@ -1,0 +1,64 @@
+
+.agreement-page {
+  display: flex;
+  flex-direction: column;
+  padding: 28rpx 24rpx;
+}
+.agreement-header {
+  padding: 34rpx 30rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffffff 100%);
+  border: 1rpx solid rgba(249, 115, 22, 0.16);
+  box-shadow: 0 10rpx 25rpx rgba(17, 24, 39, 0.03);
+}
+.agreement-kicker {
+  color: #f97316;
+  font-size: 22rpx;
+  font-weight: 800;
+}
+.agreement-title {
+  margin-top: 10rpx;
+  color: #111827;
+  font-size: 40rpx;
+  font-weight: 900;
+  line-height: 1.25;
+}
+.agreement-meta {
+  margin-top: 12rpx;
+  color: #9ca3af;
+  font-size: 22rpx;
+}
+.agreement-summary {
+  margin-top: 20rpx;
+  color: #4b5563;
+  font-size: 26rpx;
+  line-height: 1.7;
+}
+.agreement-scroll {
+  height: calc(100vh - 300rpx);
+  margin-top: 24rpx;
+}
+.agreement-content {
+  padding: 30rpx;
+  border-radius: 20rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(229, 231, 235, 0.72);
+}
+.agreement-section {
+  margin-bottom: 34rpx;
+}
+.agreement-section:last-child {
+  margin-bottom: 0;
+}
+.section-heading {
+  color: #111827;
+  font-size: 30rpx;
+  font-weight: 800;
+  line-height: 1.45;
+}
+.section-paragraph {
+  margin-top: 14rpx;
+  color: #4b5563;
+  font-size: 26rpx;
+  line-height: 1.8;
+}

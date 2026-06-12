@@ -1,0 +1,27 @@
+
+.edit-order-page {
+  padding: 24rpx 22rpx calc(150rpx + env(safe-area-inset-bottom));
+}
+.loading-card {
+  text-align: center;
+  color: var(--text-muted);
+}
+.edit-status-card {
+  background: linear-gradient(135deg, #ffffff 0%, #fff7f5 100%);
+}
+.edit-tip {
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+.order-no {
+  margin-top: 16rpx;
+  color: var(--text-weak);
+  font-size: 24rpx;
+}
+.edit-footer {
+  display: flex;
+  gap: 18rpx;
+}
+.footer-btn {
+  flex: 1;
+}

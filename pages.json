@@ -1,0 +1,157 @@
+{
+  "pages": [
+    {
+      "path": "pages/home/index",
+      "style": {
+        "navigationBarTitleText": "运车管家"
+      }
+    },
+    {
+      "path": "pages/auth/login",
+      "style": {
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "pages/agreement/detail",
+      "style": {
+        "navigationBarTitleText": "协议详情"
+      }
+    },
+    {
+      "path": "pages/verification/status",
+      "style": {
+        "navigationBarTitleText": "认证状态"
+      }
+    },
+    {
+      "path": "pages/verification/form",
+      "style": {
+        "navigationBarTitleText": "车商认证"
+      }
+    },
+    {
+      "path": "pages/search/results",
+      "style": {
+        "navigationBarTitleText": "搜索结果"
+      }
+    },
+    {
+      "path": "pages/order/create",
+      "style": {
+        "navigationBarTitleText": "填写订单"
+      }
+    },
+    {
+      "path": "pages/order/list",
+      "style": {
+        "navigationBarTitleText": "订单"
+      }
+    },
+    {
+      "path": "pages/order/detail",
+      "style": {
+        "navigationBarTitleText": "订单详情"
+      }
+    },
+    {
+      "path": "pages/order/transit-track",
+      "style": {
+        "navigationBarTitleText": "在途位置"
+      }
+    },
+    {
+      "path": "pages/order/drivers",
+      "style": {
+        "navigationBarTitleText": "司机信息"
+      }
+    },
+    {
+      "path": "pages/order/edit",
+      "style": {
+        "navigationBarTitleText": "修改订单"
+      }
+    },
+    {
+      "path": "pages/order/contract",
+      "style": {
+        "navigationBarTitleText": "模拟合同"
+      }
+    },
+    {
+      "path": "pages/order/cancel-request",
+      "style": {
+        "navigationBarTitleText": "取消订单"
+      }
+    },
+    {
+      "path": "pages/order/cancel-handle",
+      "style": {
+        "navigationBarTitleText": "处理取消"
+      }
+    },
+    {
+      "path": "pages/order/cancel-logs",
+      "style": {
+        "navigationBarTitleText": "协商历史"
+      }
+    },
+    {
+      "path": "pages/order/compensation-request",
+      "style": {
+        "navigationBarTitleText": "申请赔付"
+      }
+    },
+    {
+      "path": "pages/order/compensation-detail",
+      "style": {
+        "navigationBarTitleText": "赔付详情"
+      }
+    },
+    {
+      "path": "pages/account/index",
+      "style": {
+        "navigationBarTitleText": "我的"
+      }
+    },
+    {
+      "path": "pages/account/settings",
+      "style": {
+        "navigationBarTitleText": "设置"
+      }
+    }
+  ],
+  "tabBar": {
+    "color": "#6B7280",
+    "selectedColor": "#F97316",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页",
+        "iconPath": "static/dealer_tabbar_index.png",
+        "selectedIconPath": "static/dealer_tabbar_index_selected.png"
+      },
+      {
+        "pagePath": "pages/order/list",
+        "text": "订单",
+        "iconPath": "static/dealer_tabbar_order.png",
+        "selectedIconPath": "static/dealer_tabbar_order_selected.png"
+      },
+      {
+        "pagePath": "pages/account/index",
+        "text": "我的",
+        "iconPath": "static/dealer_tabbar_my.png",
+        "selectedIconPath": "static/dealer_tabbar_my_selected.png"
+      }
+    ]
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "汽车托运",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F5F7FA"
+  },
+  "uniIdRouter": {}
+}

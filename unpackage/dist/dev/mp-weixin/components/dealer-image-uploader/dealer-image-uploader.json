@@ -1,0 +1,6 @@
+{
+  "component": true,
+  "usingComponents": {
+    "dealer-icon": "../dealer-icon/dealer-icon"
+  }
+}

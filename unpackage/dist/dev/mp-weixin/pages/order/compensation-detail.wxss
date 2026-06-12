@@ -1,0 +1,33 @@
+
+.compensation-page.data-v-6d77c830 {
+  padding-bottom: 40rpx;
+}
+.history-item.data-v-6d77c830 {
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #eef2f7;
+}
+.history-title.data-v-6d77c830,
+.history-desc.data-v-6d77c830,
+.history-time.data-v-6d77c830 {
+  display: block;
+}
+.history-title.data-v-6d77c830 {
+  font-weight: 700;
+}
+.history-desc.data-v-6d77c830 {
+  margin-top: 8rpx;
+  color: #475569;
+}
+.history-time.data-v-6d77c830 {
+  margin-top: 8rpx;
+  color: #94a3b8;
+  font-size: 24rpx;
+}
+.textarea.data-v-6d77c830 {
+  min-height: 180rpx;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20rpx;
+  border-radius: 8rpx;
+  background: #f8fafc;
+}

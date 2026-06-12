@@ -1,0 +1,58 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/auth/login",
+    "pages/agreement/detail",
+    "pages/verification/status",
+    "pages/verification/form",
+    "pages/search/results",
+    "pages/order/create",
+    "pages/order/list",
+    "pages/order/detail",
+    "pages/order/transit-track",
+    "pages/order/drivers",
+    "pages/order/edit",
+    "pages/order/contract",
+    "pages/order/cancel-request",
+    "pages/order/cancel-handle",
+    "pages/order/cancel-logs",
+    "pages/order/compensation-request",
+    "pages/order/compensation-detail",
+    "pages/account/index",
+    "pages/account/settings"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "汽车托运",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F5F7FA"
+  },
+  "tabBar": {
+    "color": "#6B7280",
+    "selectedColor": "#F97316",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页",
+        "iconPath": "static/dealer_tabbar_index.png",
+        "selectedIconPath": "static/dealer_tabbar_index_selected.png"
+      },
+      {
+        "pagePath": "pages/order/list",
+        "text": "订单",
+        "iconPath": "static/dealer_tabbar_order.png",
+        "selectedIconPath": "static/dealer_tabbar_order_selected.png"
+      },
+      {
+        "pagePath": "pages/account/index",
+        "text": "我的",
+        "iconPath": "static/dealer_tabbar_my.png",
+        "selectedIconPath": "static/dealer_tabbar_my_selected.png"
+      }
+    ]
+  },
+  "permission": {},
+  "usingComponents": {}
+}

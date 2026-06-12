@@ -1,0 +1,19 @@
+
+.cancel-handle-page {
+  padding: 30rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.handle-card {
+  text-align: center;
+  padding: 60rpx 40rpx;
+}
+.handle-desc {
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.back-btn {
+  width: 100%;
+}

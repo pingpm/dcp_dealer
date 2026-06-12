@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "运车管家",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "region-picker": "../../components/region-picker/region-picker"
+  }
+}

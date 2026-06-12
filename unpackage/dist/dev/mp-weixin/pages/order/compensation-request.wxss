@@ -1,0 +1,40 @@
+
+.compensation-page.data-v-d63d8b31 {
+  padding-bottom: 180rpx;
+}
+.textarea.data-v-d63d8b31 {
+  min-height: 220rpx;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20rpx;
+  border-radius: 8rpx;
+  background: #f8fafc;
+}
+.word-counter.data-v-d63d8b31,
+.hint-text.data-v-d63d8b31 {
+  display: block;
+  margin-top: 12rpx;
+  color: #94a3b8;
+  font-size: 24rpx;
+  text-align: right;
+}
+.input.data-v-d63d8b31 {
+  flex: 1;
+  text-align: right;
+}
+.upload-add.data-v-d63d8b31,
+.upload-preview.data-v-d63d8b31 {
+  position: relative;
+}
+.remove-img.data-v-d63d8b31 {
+  position: absolute;
+  right: -8rpx;
+  top: -8rpx;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 18rpx;
+  background: #ef4444;
+  color: #fff;
+  text-align: center;
+  line-height: 36rpx;
+}

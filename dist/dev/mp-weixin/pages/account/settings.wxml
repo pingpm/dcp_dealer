@@ -1,0 +1,1 @@
+<view class="page settings-page"><view class="section settings-list-card"><view class="setting-row"><text class="setting-lbl">当前版本</text><text class="setting-val font-mono">v1.2.0</text></view></view><view wx:if="{{a}}" class="logout-container"><button class="logout-btn" bindtap="{{b}}">退出当前登录</button></view></view>
