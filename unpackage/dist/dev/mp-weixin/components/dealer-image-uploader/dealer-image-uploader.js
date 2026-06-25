@@ -1,6 +1,7 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
 const utils_api = require("../../utils/api.js");
+const utils_uploadFileSize = require("../../utils/upload-file-size.js");
 const _sfc_main = {
   name: "DealerImageUploader",
   props: {
@@ -99,12 +100,20 @@ const _sfc_main = {
         count: this.remainingCount,
         success: async (res) => {
           const tempFilePaths = res.tempFilePaths || [];
+          const tempFiles = res.tempFiles || [];
           if (!tempFilePaths.length)
+            return;
+          const { uploadablePaths, rejectedFiles } = utils_uploadFileSize.splitFilesBySize(tempFilePaths, tempFiles);
+          if (rejectedFiles.length) {
+            const title = rejectedFiles.length === 1 ? `图片不能超过${utils_uploadFileSize.formatUploadSize(utils_uploadFileSize.DEALER_IMAGE_UPLOAD_MAX_BYTES)}，请压缩后重新上传` : `已跳过${rejectedFiles.length}张超过${utils_uploadFileSize.formatUploadSize(utils_uploadFileSize.DEALER_IMAGE_UPLOAD_MAX_BYTES)}的图片`;
+            common_vendor.index.showToast({ title, icon: "none" });
+          }
+          if (!uploadablePaths.length)
             return;
           this.uploading = true;
           try {
             let nextFiles = this.maxCount === 1 ? [] : [...this.files];
-            for (const filePath of tempFilePaths) {
+            for (const filePath of uploadablePaths) {
               if (nextFiles.length >= this.maxCount)
                 break;
               const file = await utils_api.uploadFile(filePath, this.fileType, this.usageScene);
@@ -138,14 +147,6 @@ const _sfc_main = {
     }
   }
 };
-if (!Array) {
-  const _easycom_dealer_icon2 = common_vendor.resolveComponent("dealer-icon");
-  _easycom_dealer_icon2();
-}
-const _easycom_dealer_icon = () => "../dealer-icon/dealer-icon.js";
-if (!Math) {
-  _easycom_dealer_icon();
-}
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
     a: $props.required
@@ -170,11 +171,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     h: !$props.disabled,
     i: $options.canUpload
   }, $options.canUpload ? {
-    j: common_vendor.p({
-      name: $data.uploading ? "hourglass" : "plus",
-      size: "md",
-      color: "#f97316"
-    }),
+    j: $data.uploading ? 1 : "",
     k: common_vendor.t($options.uploadButtonText),
     l: $data.uploading ? 1 : "",
     m: common_vendor.o((...args) => $options.chooseImage && $options.chooseImage(...args), "90")
@@ -183,7 +180,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   }, $props.exampleSrc ? {
     o: $props.exampleSrc,
     p: common_vendor.t($props.exampleText),
-    q: common_vendor.o((...args) => $options.previewExample && $options.previewExample(...args), "c4")
+    q: common_vendor.o((...args) => $options.previewExample && $options.previewExample(...args), "91")
   } : {}, {
     r: $props.separator ? 1 : ""
   });

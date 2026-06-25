@@ -8,6 +8,7 @@ const _sfc_main = {
       phone: "",
       verificationCode: "",
       loading: false,
+      wechatLoading: false,
       codeLoading: false,
       countdown: 0,
       countdownTimer: null,
@@ -82,25 +83,42 @@ const _sfc_main = {
       } finally {
         this.loading = false;
       }
+    },
+    async wechatPhoneLogin(event) {
+      if (!this.validateAgreement()) {
+        return;
+      }
+      const detail = event.detail || {};
+      if (detail.errMsg && !detail.errMsg.includes("ok")) {
+        common_vendor.index.showToast({ title: "请授权手机号后登录", icon: "none" });
+        return;
+      }
+      if (!detail.code) {
+        common_vendor.index.showToast({ title: "微信未返回手机号授权凭证", icon: "none" });
+        return;
+      }
+      this.wechatLoading = true;
+      try {
+        const wxCode = await utils_api.miniappLoginCode();
+        const data = await utils_api.api.wechatPhoneLogin(detail.code, wxCode);
+        utils_api.setSession(data);
+        utils_navigation.goAfterLogin(data);
+      } finally {
+        this.wechatLoading = false;
+      }
     }
   }
 };
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return {
-    a: $data.phone,
-    b: common_vendor.o(($event) => $data.phone = $event.detail.value, "c0"),
-    c: $data.verificationCode,
-    d: common_vendor.o(($event) => $data.verificationCode = $event.detail.value, "b5"),
-    e: common_vendor.t($data.countdown > 0 ? `${$data.countdown}s` : "获取验证码"),
-    f: $data.codeLoading || $data.countdown > 0,
-    g: common_vendor.o((...args) => $options.sendCode && $options.sendCode(...args), "35"),
-    h: $data.loading,
-    i: common_vendor.o((...args) => $options.login && $options.login(...args), "b8"),
-    j: $data.agreementAccepted,
-    k: common_vendor.o((...args) => $options.toggleAgreement && $options.toggleAgreement(...args), "e8"),
-    l: common_vendor.o(($event) => $options.openAgreement("terms"), "c0"),
-    m: common_vendor.o(($event) => $options.openAgreement("privacy"), "d3"),
-    n: common_vendor.o((...args) => $options.toggleAgreement && $options.toggleAgreement(...args), "1f")
+    a: $data.wechatLoading,
+    b: $data.wechatLoading || $data.loading,
+    c: common_vendor.o((...args) => $options.wechatPhoneLogin && $options.wechatPhoneLogin(...args), "b4"),
+    d: $data.agreementAccepted,
+    e: common_vendor.o((...args) => $options.toggleAgreement && $options.toggleAgreement(...args), "94"),
+    f: common_vendor.o(($event) => $options.openAgreement("terms"), "9e"),
+    g: common_vendor.o(($event) => $options.openAgreement("privacy"), "09"),
+    h: common_vendor.o((...args) => $options.toggleAgreement && $options.toggleAgreement(...args), "22")
   };
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

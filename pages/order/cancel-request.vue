@@ -45,13 +45,16 @@
         确认并提交取消申请
       </button>
     </view>
+    <miniapp-login-sheet ref="loginSheet" @success="handleLoginSuccess" />
   </view>
 </template>
 
 <script>
+import { miniappLoginPageMixin } from '../../utils/miniapp-login-page.js';
 import { api, requireLogin } from '../../utils/api.js';
 
 export default {
+  mixins: [miniappLoginPageMixin],
   data() {
     return {
       orderId: '',

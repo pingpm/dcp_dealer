@@ -1,8 +1,10 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
+const utils_miniappLoginPage = require("../../utils/miniapp-login-page.js");
 const utils_api = require("../../utils/api.js");
 const utils_format = require("../../utils/format.js");
 const _sfc_main = {
+  mixins: [utils_miniappLoginPage.miniappLoginPageMixin],
   data() {
     return {
       status: {
@@ -13,27 +15,20 @@ const _sfc_main = {
     };
   },
   computed: {
-    statusIconName() {
-      const map = {
-        APPROVED: "circle-check",
-        PENDING: "hourglass",
-        REJECTED: "triangle-alert"
-      };
-      return map[this.status.reviewStatus] || "user-round";
-    },
-    statusIconColor() {
-      const map = {
-        APPROVED: "#16a34a",
-        PENDING: "#d97706",
-        REJECTED: "#dc2626"
-      };
-      return map[this.status.reviewStatus] || "#64748b";
-    },
     licenseFiles() {
       return (this.status.mediaFiles || []).filter((f) => f.usageScene === "BUSINESS_LICENSE");
     },
     siteFiles() {
       return (this.status.mediaFiles || []).filter((f) => f.usageScene === "BUSINESS_SITE");
+    },
+    statusIconSrc() {
+      const map = {
+        APPROVED: "/static/status-icons/approved.png",
+        PENDING: "/static/status-icons/pending.png",
+        REJECTED: "/static/status-icons/rejected.png",
+        UNVERIFIED: "/static/status-icons/unverified.png"
+      };
+      return map[this.status.reviewStatus] || map.UNVERIFIED;
     }
   },
   onShow() {
@@ -76,20 +71,16 @@ const _sfc_main = {
   }
 };
 if (!Array) {
-  const _easycom_dealer_icon2 = common_vendor.resolveComponent("dealer-icon");
-  _easycom_dealer_icon2();
+  const _easycom_miniapp_login_sheet2 = common_vendor.resolveComponent("miniapp-login-sheet");
+  _easycom_miniapp_login_sheet2();
 }
-const _easycom_dealer_icon = () => "../../components/dealer-icon/dealer-icon.js";
+const _easycom_miniapp_login_sheet = () => "../../components/miniapp-login-sheet/miniapp-login-sheet.js";
 if (!Math) {
-  _easycom_dealer_icon();
+  _easycom_miniapp_login_sheet();
 }
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
-    a: common_vendor.p({
-      name: $options.statusIconName,
-      size: "lg",
-      color: $options.statusIconColor
-    }),
+    a: $options.statusIconSrc,
     b: common_vendor.t($data.reviewStatusText[$data.status.reviewStatus] || "-"),
     c: $data.status.reviewStatus === "APPROVED"
   }, $data.status.reviewStatus === "APPROVED" ? {} : $data.status.reviewStatus === "PENDING" ? {} : $data.status.reviewStatus === "REJECTED" ? {} : {}, {
@@ -141,14 +132,16 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   } : {}) : {}, {
     z: $data.status.reviewStatus === "APPROVED"
   }, $data.status.reviewStatus === "APPROVED" ? {
-    A: common_vendor.o((...args) => $options.goHome && $options.goHome(...args), "c1")
+    A: common_vendor.o((...args) => $options.goHome && $options.goHome(...args), "62")
   } : $data.status.reviewStatus === "PENDING" ? {
-    C: common_vendor.o((...args) => $options.load && $options.load(...args), "20")
+    C: common_vendor.o((...args) => $options.load && $options.load(...args), "8a")
   } : {
     D: common_vendor.t($data.status.reviewStatus === "REJECTED" ? "重新提交认证信息" : "立即去认证"),
-    E: common_vendor.o((...args) => $options.goForm && $options.goForm(...args), "68")
+    E: common_vendor.o((...args) => $options.goForm && $options.goForm(...args), "06")
   }, {
-    B: $data.status.reviewStatus === "PENDING"
+    B: $data.status.reviewStatus === "PENDING",
+    F: common_vendor.sr("loginSheet", "6aaf0f56-0"),
+    G: common_vendor.o(_ctx.handleLoginSuccess, "b3")
   });
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

@@ -1,9 +1,11 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
+const utils_miniappLoginPage = require("../../utils/miniapp-login-page.js");
 const utils_api = require("../../utils/api.js");
 const utils_format = require("../../utils/format.js");
 const common_assets = require("../../common/assets.js");
 const _sfc_main = {
+  mixins: [utils_miniappLoginPage.miniappLoginPageMixin],
   data() {
     return {
       orderId: "",
@@ -18,6 +20,7 @@ const _sfc_main = {
       vehicleConditionText: utils_format.vehicleConditionText,
       countdownTimeText: "",
       shouldShowPaymentSuccessModal: false,
+      shouldRefreshOnShow: false,
       compensationEligibility: {},
       compensationClaim: null
     };
@@ -27,7 +30,6 @@ const _sfc_main = {
       return [
         "PENDING_PAYMENT",
         "PENDING_CONFIRM",
-        "PENDING_CONTRACT",
         "PENDING_PICKUP",
         "IN_TRANSIT"
       ].includes(this.order.orderStatus);
@@ -48,7 +50,6 @@ const _sfc_main = {
       const map = {
         PENDING_PAYMENT: "/static/order_status_pendding.svg",
         PENDING_CONFIRM: "/static/order_status_pendding.svg",
-        PENDING_CONTRACT: "/static/order_status_pendding.svg",
         PENDING_PICKUP: "/static/order_status_wait_for_pickup.svg",
         IN_TRANSIT: "/static/order_status_transport.svg",
         PENDING_RECEIPT: "/static/order_status_transport.svg",
@@ -63,7 +64,6 @@ const _sfc_main = {
       const map = {
         PENDING_PAYMENT: "待支付",
         PENDING_CONFIRM: "待确认",
-        PENDING_CONTRACT: "待确认",
         PENDING_PICKUP: "待提车",
         IN_TRANSIT: "运输中",
         PENDING_RECEIPT: "待收车",
@@ -79,8 +79,6 @@ const _sfc_main = {
         return "待支付增值服务费";
       if (status === "PENDING_CONFIRM")
         return "待承运商确认订单信息";
-      if (status === "PENDING_CONTRACT")
-        return "待双方签署合同";
       if (status === "PENDING_PICKUP")
         return "待承运商提车";
       if (status === "IN_TRANSIT")
@@ -159,7 +157,6 @@ const _sfc_main = {
     showContactPrimary() {
       return [
         "PENDING_CONFIRM",
-        "PENDING_CONTRACT",
         "PENDING_PICKUP",
         "IN_TRANSIT",
         "PENDING_RECEIPT"
@@ -177,6 +174,12 @@ const _sfc_main = {
       return;
     this.orderId = options.orderId;
     this.shouldShowPaymentSuccessModal = options.paymentSuccess === "1";
+    this.load();
+  },
+  onShow() {
+    if (!this.shouldRefreshOnShow || !this.orderId)
+      return;
+    this.shouldRefreshOnShow = false;
     this.load();
   },
   methods: {
@@ -289,9 +292,6 @@ const _sfc_main = {
         }
       });
     },
-    goContract() {
-      common_vendor.index.navigateTo({ url: `/pages/order/contract?orderId=${this.orderId}` });
-    },
     goTransitTrack() {
       common_vendor.index.navigateTo({ url: `/pages/order/transit-track?orderId=${this.orderId}` });
     },
@@ -311,6 +311,29 @@ const _sfc_main = {
     },
     goCompensationRequest() {
       common_vendor.index.navigateTo({ url: `/pages/order/compensation-request?orderId=${this.orderId}` });
+    },
+    handleCompensationRequestAction() {
+      if (this.compensationEligibility.mode === "OFFLINE_SERVICE") {
+        this.showCompensationServiceModal();
+        return;
+      }
+      this.goCompensationRequest();
+    },
+    showCompensationServiceModal() {
+      const phone = this.compensationEligibility.customerServicePhone || "";
+      common_vendor.index.showModal({
+        title: "联系平台客服",
+        content: phone ? `当前赔付申请请联系平台客服：${phone}` : "当前赔付申请请联系平台客服处理。",
+        confirmText: phone ? "拨打客服" : "我知道了",
+        cancelText: "取消",
+        showCancel: Boolean(phone),
+        confirmColor: "#f97316",
+        success: (res) => {
+          if (res.confirm && phone) {
+            common_vendor.index.makePhoneCall({ phoneNumber: phone });
+          }
+        }
+      });
     },
     goCompensationDetail() {
       var _a;
@@ -348,9 +371,9 @@ const _sfc_main = {
       }
       itemList.push("协商历史");
       actions.push(() => this.goCancelLogs());
-      if (this.compensationEligibility.eligible) {
+      if (this.compensationEligibility.actionVisible) {
         itemList.push("申请赔付");
-        actions.push(() => this.goCompensationRequest());
+        actions.push(() => this.handleCompensationRequestAction());
       }
       if (this.compensationClaim) {
         itemList.push("赔付详情");
@@ -423,42 +446,18 @@ const _sfc_main = {
       return "status-warning";
     },
     logActionText(actionType) {
-      if (!actionType)
-        return "";
-      const key = String(actionType).toUpperCase();
-      const map = {
-        CREATE: "订单提交创建",
-        CREATE_ORDER: "订单提交创建",
-        UPDATE_ORDER: "车商修改订单",
-        GUARANTEE_PAID: "担保交易服务费已支付",
-        CARRIER_CONFIRM: "承运商确认订单",
-        CONFIRM_CONTRACT: "双方确认合同",
-        CONTRACT_SIGN: "双方确认合同",
-        SET_DRIVER: "设置司机信息",
-        PICKUP: "承运商提车验车完成",
-        PICKUP_CONFIRM: "承运商提车验车完成",
-        TRANSIT_LOCATION: "上报在途位置",
-        TRANSIT_REPORT: "上报在途位置",
-        HANDOVER: "承运商已交车",
-        HANDOVER_CONFIRM: "承运商已交车",
-        RECEIPT_CONFIRM: "车商确认已收车",
-        DEALER_CONFIRM_RECEIPT: "车商确认已收车",
-        AUTO_RECEIPT: "系统自动确认收车",
-        DIRECT_CANCEL: "订单取消关闭",
-        CANCEL_REQUEST: "发起取消申请",
-        CANCEL_WITHDRAW: "撤销取消申请",
-        WITHDRAW: "撤回取消申请",
-        CANCEL_HANDLE: "取消申请已处理",
-        CANCEL_APPROVED: "同意取消申请",
-        CANCEL_REJECTED: "拒绝取消申请",
-        FORCE_CANCEL: "系统强制取消",
-        ADMIN_FORCE_CANCEL: "系统强制取消",
-        STATUS_CHANGE: "订单状态变更"
-      };
-      return map[key] || actionType;
+      return utils_format.formatOrderLogAction(actionType);
     }
   }
 };
+if (!Array) {
+  const _easycom_miniapp_login_sheet2 = common_vendor.resolveComponent("miniapp-login-sheet");
+  _easycom_miniapp_login_sheet2();
+}
+const _easycom_miniapp_login_sheet = () => "../../components/miniapp-login-sheet/miniapp-login-sheet.js";
+if (!Math) {
+  _easycom_miniapp_login_sheet();
+}
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
     a: $options.statusIconSrc,
@@ -499,27 +498,32 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     A: common_vendor.t($options.yuanText($data.order.orderAmountCent)),
     B: common_vendor.t($options.dateText($data.order.agreedDeliveryTime)),
     C: common_vendor.t($data.order.hasInvoice ? "需要发票（线下开具）" : "不需要发票"),
-    D: $options.hasPickupServiceValue
+    D: common_vendor.t($data.order.hasInsurance ? `含保险，最高保额${$options.yuanText($data.order.insuranceMaxAmountCent)}` : "不含保险"),
+    E: $data.order.hasInsurance && $data.order.insuranceRemark
+  }, $data.order.hasInsurance && $data.order.insuranceRemark ? {
+    F: common_vendor.t($data.order.insuranceRemark)
+  } : {}, {
+    G: $options.hasPickupServiceValue
   }, $options.hasPickupServiceValue ? common_vendor.e({
-    E: common_vendor.t($data.order.hasPickupService ? "需要提车" : "不需要提车"),
-    F: common_vendor.n($data.order.hasPickupService ? "status-success" : "status-warning"),
-    G: $data.order.hasPickupService
+    H: common_vendor.t($data.order.hasPickupService ? "需要提车" : "不需要提车"),
+    I: common_vendor.n($data.order.hasPickupService ? "status-success" : "status-warning"),
+    J: $data.order.hasPickupService
   }, $data.order.hasPickupService ? {
-    H: common_vendor.t($options.addressText("origin"))
+    K: common_vendor.t($options.addressText("origin"))
   } : {}) : {}, {
-    I: $options.hasDeliveryServiceValue
+    L: $options.hasDeliveryServiceValue
   }, $options.hasDeliveryServiceValue ? common_vendor.e({
-    J: common_vendor.t($data.order.hasDeliveryService ? "需要送车" : "不需要送车"),
-    K: common_vendor.n($data.order.hasDeliveryService ? "status-success" : "status-warning"),
-    L: $data.order.hasDeliveryService
+    M: common_vendor.t($data.order.hasDeliveryService ? "需要送车" : "不需要送车"),
+    N: common_vendor.n($data.order.hasDeliveryService ? "status-success" : "status-warning"),
+    O: $data.order.hasDeliveryService
   }, $data.order.hasDeliveryService ? {
-    M: common_vendor.t($options.addressText("destination"))
+    P: common_vendor.t($options.addressText("destination"))
   } : {}) : {}, {
-    N: common_vendor.t($data.order.customerSubjectName || "个人客户"),
-    O: common_vendor.t($options.contactText($data.order.senderName, $data.order.senderPhone)),
-    P: common_vendor.t($options.contactText($data.order.receiverName, $data.order.receiverPhone)),
-    Q: common_vendor.t($data.vehicles.length),
-    R: common_vendor.f($data.vehicles, (vehicle, k0, i0) => {
+    Q: common_vendor.t($data.order.customerSubjectName || "个人客户"),
+    R: common_vendor.t($options.contactText($data.order.senderName, $data.order.senderPhone)),
+    S: common_vendor.t($options.contactText($data.order.receiverName, $data.order.receiverPhone)),
+    T: common_vendor.t($data.vehicles.length),
+    U: common_vendor.f($data.vehicles, (vehicle, k0, i0) => {
       return {
         a: common_vendor.t(vehicle.brandName),
         b: common_vendor.t(vehicle.seriesName || ""),
@@ -530,29 +534,29 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         g: vehicle.id
       };
     }),
-    S: $data.order.driverInfo || $data.order.deliveryDriverInfo
+    V: $data.order.driverInfo || $data.order.deliveryDriverInfo
   }, $data.order.driverInfo || $data.order.deliveryDriverInfo ? common_vendor.e({
-    T: $data.order.driverInfo
+    W: $data.order.driverInfo
   }, $data.order.driverInfo ? {
-    U: common_vendor.t($data.order.driverInfo.driverName),
-    V: common_vendor.t($data.order.driverInfo.driverPhone),
-    W: common_vendor.t($data.order.driverInfo.licensePlate),
-    X: common_vendor.t($data.order.driverInfo.idNumber || "-")
+    X: common_vendor.t($data.order.driverInfo.driverName),
+    Y: common_vendor.t($data.order.driverInfo.driverPhone),
+    Z: common_vendor.t($data.order.driverInfo.licensePlate),
+    aa: common_vendor.t($data.order.driverInfo.idNumber || "-")
   } : {}, {
-    Y: $data.order.deliveryDriverInfo
+    ab: $data.order.deliveryDriverInfo
   }, $data.order.deliveryDriverInfo ? {
-    Z: common_vendor.t($data.order.deliveryDriverInfo.driverName),
-    aa: common_vendor.t($data.order.deliveryDriverInfo.driverPhone),
-    ab: common_vendor.t($data.order.deliveryDriverInfo.licensePlate),
-    ac: common_vendor.t($data.order.deliveryDriverInfo.idNumber || "-")
+    ac: common_vendor.t($data.order.deliveryDriverInfo.driverName),
+    ad: common_vendor.t($data.order.deliveryDriverInfo.driverPhone),
+    ae: common_vendor.t($data.order.deliveryDriverInfo.licensePlate),
+    af: common_vendor.t($data.order.deliveryDriverInfo.idNumber || "-")
   } : {}) : {}, {
-    ad: $data.order.pickupDetails
+    ag: $data.order.pickupDetails
   }, $data.order.pickupDetails ? common_vendor.e({
-    ae: common_vendor.t($options.dateText($data.order.pickupDetails.pickupTime)),
-    af: common_vendor.t($data.order.pickupDetails.remark || "-"),
-    ag: $data.pickupUrls.length
+    ah: common_vendor.t($options.dateText($data.order.pickupDetails.pickupTime)),
+    ai: common_vendor.t($data.order.pickupDetails.remark || "-"),
+    aj: $data.pickupUrls.length
   }, $data.pickupUrls.length ? {
-    ah: common_vendor.f($data.pickupUrls, (url, index, i0) => {
+    ak: common_vendor.f($data.pickupUrls, (url, index, i0) => {
       return {
         a: url,
         b: common_vendor.o(($event) => $options.previewImg(url), index),
@@ -560,13 +564,13 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       };
     })
   } : {}) : {}, {
-    ai: $data.order.handoverDetails
+    al: $data.order.handoverDetails
   }, $data.order.handoverDetails ? common_vendor.e({
-    aj: common_vendor.t($options.dateText($data.order.handoverDetails.handoverTime)),
-    ak: common_vendor.t($data.order.handoverDetails.remark || "-"),
-    al: $data.handoverUrls.length
+    am: common_vendor.t($options.dateText($data.order.handoverDetails.handoverTime)),
+    an: common_vendor.t($data.order.handoverDetails.remark || "-"),
+    ao: $data.handoverUrls.length
   }, $data.handoverUrls.length ? {
-    am: common_vendor.f($data.handoverUrls, (url, index, i0) => {
+    ap: common_vendor.f($data.handoverUrls, (url, index, i0) => {
       return {
         a: url,
         b: common_vendor.o(($event) => $options.previewImg(url), index),
@@ -574,22 +578,22 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       };
     })
   } : {}) : {}, {
-    an: $data.compensationClaim || $data.compensationEligibility.eligible
+    aq: $data.compensationClaim || $data.compensationEligibility.eligible
   }, $data.compensationClaim || $data.compensationEligibility.eligible ? common_vendor.e({
-    ao: $data.compensationClaim
+    ar: $data.compensationClaim
   }, $data.compensationClaim ? {
-    ap: common_vendor.t($data.compensationClaim.claimNo),
-    aq: common_vendor.t($options.compensationStatusText($data.compensationClaim.claimStatus)),
-    ar: common_vendor.t($options.yuanText($data.compensationClaim.requestedCompensationCent))
+    as: common_vendor.t($data.compensationClaim.claimNo),
+    at: common_vendor.t($options.compensationStatusText($data.compensationClaim.claimStatus)),
+    av: common_vendor.t($options.yuanText($data.compensationClaim.requestedCompensationCent))
   } : {
-    as: common_vendor.t($options.yuanText($data.compensationEligibility.ruleSnapshot.compensationPerDayCent)),
-    at: common_vendor.t($options.yuanText($data.compensationEligibility.ruleSnapshot.suggestedCompensationCent))
+    aw: common_vendor.t($options.yuanText($data.compensationEligibility.ruleSnapshot.compensationPerDayCent)),
+    ax: common_vendor.t($options.yuanText($data.compensationEligibility.ruleSnapshot.suggestedCompensationCent))
   }, {
-    av: $data.compensationClaim
+    ay: $data.compensationClaim
   }, $data.compensationClaim ? {
-    aw: common_vendor.o((...args) => $options.goCompensationDetail && $options.goCompensationDetail(...args), "49")
+    az: common_vendor.o((...args) => $options.goCompensationDetail && $options.goCompensationDetail(...args), "73")
   } : {}) : {}, {
-    ax: common_vendor.f($data.logs, (log, idx, i0) => {
+    aA: common_vendor.f($data.logs, (log, idx, i0) => {
       return common_vendor.e({
         a: common_vendor.n($options.getLogStatusClass(log.actionType)),
         b: idx < $data.logs.length - 1
@@ -604,39 +608,38 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         h: idx === 0 ? 1 : ""
       });
     }),
-    ay: $data.logs.length === 0
+    aB: $data.logs.length === 0
   }, $data.logs.length === 0 ? {} : {}, {
-    az: $data.order.orderStatus === "PENDING_CONFIRM"
+    aC: $data.order.orderStatus === "PENDING_CONFIRM"
   }, $data.order.orderStatus === "PENDING_CONFIRM" ? {} : {}, {
-    aA: ["PENDING_PAYMENT", "PENDING_CONFIRM", "PENDING_CONTRACT", "PENDING_PICKUP", "IN_TRANSIT", "PENDING_RECEIPT", "COMPLETED"].includes($data.order.orderStatus)
-  }, ["PENDING_PAYMENT", "PENDING_CONFIRM", "PENDING_CONTRACT", "PENDING_PICKUP", "IN_TRANSIT", "PENDING_RECEIPT", "COMPLETED"].includes($data.order.orderStatus) ? common_vendor.e({
-    aB: $data.order.orderStatus === "PENDING_CONFIRM"
+    aD: ["PENDING_PAYMENT", "PENDING_CONFIRM", "PENDING_PICKUP", "IN_TRANSIT", "PENDING_RECEIPT", "COMPLETED"].includes($data.order.orderStatus)
+  }, ["PENDING_PAYMENT", "PENDING_CONFIRM", "PENDING_PICKUP", "IN_TRANSIT", "PENDING_RECEIPT", "COMPLETED"].includes($data.order.orderStatus) ? common_vendor.e({
+    aE: $data.order.orderStatus === "PENDING_CONFIRM"
   }, $data.order.orderStatus === "PENDING_CONFIRM" ? {
-    aC: common_vendor.o((...args) => $options.goEdit && $options.goEdit(...args), "c8")
+    aF: common_vendor.o((...args) => $options.goEdit && $options.goEdit(...args), "81")
   } : {}, {
-    aD: $options.showContactPrimary
+    aG: $options.showContactPrimary
   }, $options.showContactPrimary ? {
-    aE: common_vendor.o((...args) => $options.contactCarrier && $options.contactCarrier(...args), "57")
+    aH: common_vendor.o((...args) => $options.contactCarrier && $options.contactCarrier(...args), "bf")
   } : {}, {
-    aF: $data.order.orderStatus === "PENDING_PAYMENT"
+    aI: $data.order.orderStatus === "PENDING_PAYMENT"
   }, $data.order.orderStatus === "PENDING_PAYMENT" ? {
-    aG: common_vendor.o((...args) => $options.payAgain && $options.payAgain(...args), "73")
+    aJ: common_vendor.o((...args) => $options.payAgain && $options.payAgain(...args), "3d")
   } : {}, {
-    aH: $data.order.orderStatus === "PENDING_CONTRACT"
-  }, $data.order.orderStatus === "PENDING_CONTRACT" ? {
-    aI: common_vendor.o((...args) => $options.goContract && $options.goContract(...args), "60")
-  } : {}, {
-    aJ: $data.order.orderStatus === "IN_TRANSIT"
+    aK: $data.order.orderStatus === "IN_TRANSIT"
   }, $data.order.orderStatus === "IN_TRANSIT" ? {
-    aK: common_vendor.o((...args) => $options.goTransitTrack && $options.goTransitTrack(...args), "0d")
+    aL: common_vendor.o((...args) => $options.goTransitTrack && $options.goTransitTrack(...args), "72")
   } : {}, {
-    aL: $data.order.orderStatus === "PENDING_RECEIPT"
+    aM: $data.order.orderStatus === "PENDING_RECEIPT"
   }, $data.order.orderStatus === "PENDING_RECEIPT" ? {
-    aM: common_vendor.o((...args) => $options.confirmReceipt && $options.confirmReceipt(...args), "2f")
+    aN: common_vendor.o((...args) => $options.confirmReceipt && $options.confirmReceipt(...args), "41")
   } : {}, {
-    aN: common_vendor.o((...args) => $options.showMoreActions && $options.showMoreActions(...args), "1d")
+    aO: common_vendor.o((...args) => $options.showMoreActions && $options.showMoreActions(...args), "04")
   }) : {
-    aO: common_vendor.o((...args) => $options.goCancelLogs && $options.goCancelLogs(...args), "b1")
+    aP: common_vendor.o((...args) => $options.goCancelLogs && $options.goCancelLogs(...args), "a1")
+  }, {
+    aQ: common_vendor.sr("loginSheet", "bdc04d5a-0"),
+    aR: common_vendor.o(_ctx.handleLoginSuccess, "8b")
   });
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

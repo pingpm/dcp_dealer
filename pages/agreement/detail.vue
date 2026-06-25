@@ -3,13 +3,17 @@
     <view class="agreement-header">
       <view class="agreement-kicker">车商端协议</view>
       <view class="agreement-title">{{ agreement.title }}</view>
-      <view class="agreement-meta">生效日期：2026-06-07</view>
+      <view class="agreement-meta">
+        <text>生效日期：{{ agreement.effectiveDate || '2026-06-07' }}</text>
+        <text v-if="agreement.version" class="agreement-version">版本：{{ agreement.version }}</text>
+      </view>
       <view class="agreement-summary">{{ agreement.summary }}</view>
     </view>
 
     <scroll-view class="agreement-scroll" scroll-y>
       <view class="agreement-content">
-        <view v-for="section in agreement.sections" :key="section.heading" class="agreement-section">
+        <view v-if="loading" class="agreement-loading">正在加载协议内容...</view>
+        <view v-for="section in agreement.sections" v-else :key="section.heading" class="agreement-section">
           <view class="section-heading">{{ section.heading }}</view>
           <view v-for="paragraph in section.paragraphs" :key="paragraph" class="section-paragraph">
             {{ paragraph }}
@@ -21,9 +25,13 @@
 </template>
 
 <script>
+import { api } from '../../utils/api.js';
+
 const agreements = {
   terms: {
     title: '车商注册协议',
+    effectiveDate: '2026-06-07',
+    version: '',
     summary:
       '本协议适用于车商通过平台搜索承运商、发起托运订单、支付担保交易费并跟踪履约过程。',
     sections: [
@@ -80,6 +88,8 @@ const agreements = {
   },
   privacy: {
     title: '车商隐私协议',
+    effectiveDate: '2026-06-07',
+    version: '',
     summary:
       '本协议说明平台在车商端收集、使用和保护个人信息、企业资料、订单信息及联系记录的方式。',
     sections: [
@@ -96,14 +106,14 @@ const agreements = {
         heading: '二、信息使用目的',
         paragraphs: [
           '我们会将收集的信息用于账号登录、身份核验、承运商搜索、联系授权、订单创建、担保交易费支付、履约跟踪和通知提醒。',
-          '我们会根据认证状态、订单状态、支付状态等业务规则判断您是否可以搜索、联系、下单、确认合同、处理取消或确认收车。',
+          '我们会根据认证状态、订单状态、支付状态等业务规则判断您是否可以搜索、联系、下单、处理取消或确认收车。',
           '我们会对必要的操作记录进行留存，用于客服核验、争议处理、财务对账、安全审计和法律法规要求的合规留存。',
         ],
       },
       {
         heading: '三、信息共享与展示',
         paragraphs: [
-          '在您发起订单、确认合同或履约沟通时，必要的车商名称、联系人、联系电话、车辆与线路信息可能展示给对应承运商。',
+          '在您发起订单、确认订单信息或履约沟通时，必要的车商名称、联系人、联系电话、车辆与线路信息可能展示给对应承运商。',
           '平台不会向无关第三方出售您的个人信息或企业资料。因支付、文件存储、通知发送等必要服务需要共享时，我们会限定共享范围。',
           '后台管理员可在履行审核、订单管理、钱包管理、争议处理等职责时查看必要信息，并应遵守平台管理规范。',
         ],
@@ -132,16 +142,66 @@ export default {
   data() {
     return {
       type: 'terms',
+      remoteAgreement: null,
+      loading: false,
     };
   },
   computed: {
     agreement() {
+      if (this.type === 'guarantee' && this.remoteAgreement) return this.remoteAgreement;
       return agreements[this.type] || agreements.terms;
     },
   },
   onLoad(options) {
-    this.type = options?.type === 'privacy' ? 'privacy' : 'terms';
+    this.type = ['privacy', 'guarantee'].includes(options?.type) ? options.type : 'terms';
     uni.setNavigationBarTitle({ title: this.agreement.title });
+    if (this.type === 'guarantee') {
+      this.loadGuaranteeAgreement();
+    }
+  },
+  methods: {
+    parsePlainTextAgreement(data = {}) {
+      const fallbackTitle = data.title || '担保交易服务协议';
+      const sections = String(data.content || '')
+        .split(/\n{2,}/)
+        .map((block) => block.trim())
+        .filter(Boolean)
+        .map((block) => {
+          const lines = block.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+          return {
+            heading: lines[0] || fallbackTitle,
+            paragraphs: lines.length > 1 ? lines.slice(1) : [''],
+          };
+        });
+      return {
+        title: fallbackTitle,
+        effectiveDate: data.effectiveDate || '',
+        version: data.version || '',
+        summary: '本协议适用于车商支付平台担保交易服务费时使用的电子合同与限时达服务。',
+        sections: sections.length
+          ? sections
+          : [{ heading: '协议内容', paragraphs: ['协议内容暂未配置，请联系平台客服。'] }],
+      };
+    },
+    async loadGuaranteeAgreement() {
+      this.loading = true;
+      try {
+        const result = await api.guaranteeServiceAgreement({ silent: true });
+        this.remoteAgreement = this.parsePlainTextAgreement(result);
+        uni.setNavigationBarTitle({ title: this.remoteAgreement.title });
+      } catch (error) {
+        this.remoteAgreement = {
+          title: '担保交易服务协议',
+          effectiveDate: '',
+          version: '',
+          summary: '协议内容暂时无法加载，请稍后重试或联系平台客服。',
+          sections: [{ heading: '协议内容加载失败', paragraphs: ['请检查网络后重新打开本页面。'] }],
+        };
+        uni.setNavigationBarTitle({ title: this.remoteAgreement.title });
+      } finally {
+        this.loading = false;
+      }
+    },
   },
 };
 </script>
@@ -179,6 +239,9 @@ export default {
   margin-top: 12rpx;
   color: #9ca3af;
   font-size: 22rpx;
+  display: flex;
+  gap: 18rpx;
+  flex-wrap: wrap;
 }
 
 .agreement-summary {
@@ -206,6 +269,13 @@ export default {
 
 .agreement-section:last-child {
   margin-bottom: 0;
+}
+
+.agreement-loading {
+  color: #64748b;
+  font-size: 26rpx;
+  text-align: center;
+  padding: 40rpx 0;
 }
 
 .section-heading {

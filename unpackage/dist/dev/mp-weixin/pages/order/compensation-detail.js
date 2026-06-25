@@ -1,8 +1,10 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
+const utils_miniappLoginPage = require("../../utils/miniapp-login-page.js");
 const utils_api = require("../../utils/api.js");
 const utils_format = require("../../utils/format.js");
 const _sfc_main = {
+  mixins: [utils_miniappLoginPage.miniappLoginPageMixin],
   data() {
     return {
       claimId: "",
@@ -60,6 +62,14 @@ const _sfc_main = {
     }
   }
 };
+if (!Array) {
+  const _easycom_miniapp_login_sheet2 = common_vendor.resolveComponent("miniapp-login-sheet");
+  _easycom_miniapp_login_sheet2();
+}
+const _easycom_miniapp_login_sheet = () => "../../components/miniapp-login-sheet/miniapp-login-sheet.js";
+if (!Math) {
+  _easycom_miniapp_login_sheet();
+}
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
     a: $data.claim.id
@@ -97,7 +107,10 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     m: $data.interventionReason,
     n: common_vendor.o(($event) => $data.interventionReason = $event.detail.value, "91"),
     o: common_vendor.o((...args) => $options.requestPlatform && $options.requestPlatform(...args), "ea")
-  } : {});
+  } : {}, {
+    p: common_vendor.sr("loginSheet", "6d77c830-0"),
+    q: common_vendor.o(_ctx.handleLoginSuccess, "7f")
+  });
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render], ["__scopeId", "data-v-6d77c830"]]);
 wx.createPage(MiniProgramPage);

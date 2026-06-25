@@ -4,7 +4,12 @@ export async function ensureDealerReady() {
   if (!requireLogin()) return false;
   try {
     const status = await api.verificationStatus();
-    if (status.reviewStatus !== 'APPROVED') {
+    const session = getSession() || {};
+    const dealerVerificationRequired =
+      status.dealerVerificationRequired !== undefined
+        ? status.dealerVerificationRequired !== false
+        : session.dealerVerificationRequired !== false;
+    if (dealerVerificationRequired && status.reviewStatus !== 'APPROVED') {
       uni.redirectTo({ url: '/pages/verification/status' });
       return false;
     }

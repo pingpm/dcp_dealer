@@ -50,14 +50,17 @@
         </view>
       </view>
     </block>
+    <miniapp-login-sheet ref="loginSheet" @success="handleLoginSuccess" />
   </view>
 </template>
 
 <script>
+import { miniappLoginPageMixin } from '../../utils/miniapp-login-page.js';
 import { api, requireLogin } from '../../utils/api.js';
 import { dateText, yuanText } from '../../utils/format.js';
 
 export default {
+  mixins: [miniappLoginPageMixin],
   data() {
     return {
       orderId: '',

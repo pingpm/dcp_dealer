@@ -80,4 +80,20 @@
   font-size: 23rpx;
   line-height: 1.45;
 }
+.input.error {
+  border: 1rpx solid #ef4444;
+  background: #fef2f2;
+  color: #991b1b;
+}
+.field-error-text {
+  display: block;
+  margin-top: 10rpx;
+  color: #dc2626;
+  font-size: 22rpx;
+  line-height: 1.35;
+}
+.dev-upload-btn {
+  width: 100%;
+  margin-top: 26rpx;
+}
 

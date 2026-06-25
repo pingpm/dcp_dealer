@@ -3,15 +3,18 @@ const common_vendor = require("../../common/vendor.js");
 const utils_api = require("../../utils/api.js");
 const utils_format = require("../../utils/format.js");
 const common_assets = require("../../common/assets.js");
+const MiniappLoginSheet = () => "../../components/miniapp-login-sheet/miniapp-login-sheet.js";
 const RegionPicker = () => "../../components/region-picker/region-picker.js";
 const _sfc_main = {
   components: {
+    MiniappLoginSheet,
     RegionPicker
   },
   data() {
     return {
       status: { reviewStatus: "UNVERIFIED" },
       reviewStatusText: utils_format.reviewStatusText,
+      dealerVerificationRequired: true,
       searching: false,
       isLoggedIn: false,
       searchType: "route",
@@ -61,6 +64,9 @@ const _sfc_main = {
       if (this.status.reviewStatus === "PENDING")
         return "查看进度";
       return "立即认证";
+    },
+    needsVerification() {
+      return this.dealerVerificationRequired && this.status.reviewStatus !== "APPROVED";
     }
   },
   onShow() {
@@ -73,7 +79,12 @@ const _sfc_main = {
   methods: {
     async loadStatus() {
       try {
+        const session = utils_api.getSession() || {};
+        this.dealerVerificationRequired = session.dealerVerificationRequired !== false;
         this.status = await utils_api.api.verificationStatus({ authRedirect: false, silent: true });
+        if (this.status.dealerVerificationRequired !== void 0) {
+          this.dealerVerificationRequired = this.status.dealerVerificationRequired !== false;
+        }
         this.showVerificationPromptIfNeeded(this.status.reviewStatus);
       } catch (error) {
         if ((error == null ? void 0 : error.statusCode) === 401) {
@@ -88,11 +99,71 @@ const _sfc_main = {
         return;
       }
       common_vendor.index.removeStorageSync("dealer_need_verification_prompt");
+      const prompt = this.loginVerificationPrompt(reviewStatus);
       common_vendor.index.showModal({
-        title: "还未完成认证",
-        content: "完成车商认证后，您可以搜索承运商、联系承运商并发起托运订单。",
+        title: prompt.title,
+        content: prompt.content,
         confirmText: "立即认证",
+        cancelText: this.dealerVerificationRequired ? "稍后认证" : "暂不认证",
+        success: (res) => {
+          if (res.confirm) {
+            this.goVerify();
+          }
+        }
+      });
+    },
+    loginVerificationPrompt(reviewStatus) {
+      if (this.dealerVerificationRequired) {
+        if (reviewStatus === "PENDING") {
+          return {
+            title: "认证审核中",
+            content: "您的车商认证正在审核中，审核通过后即可搜索承运商、联系承运商并发起托运订单。"
+          };
+        }
+        if (reviewStatus === "REJECTED") {
+          return {
+            title: "认证未通过",
+            content: "您的车商认证未通过，请重新提交认证资料。认证通过后即可搜索承运商、联系承运商并发起托运订单。"
+          };
+        }
+        return {
+          title: "请先完成车商认证",
+          content: "完成车商认证后，您可以搜索承运商、联系承运商并发起托运订单。"
+        };
+      }
+      if (reviewStatus === "PENDING") {
+        return {
+          title: "认证资料审核中",
+          content: "您已提交车商认证资料，平台会尽快审核。审核期间不影响您搜索承运商、联系承运商和发起订单。"
+        };
+      }
+      if (reviewStatus === "REJECTED") {
+        return {
+          title: "完善车商资料",
+          content: "您的认证资料暂未通过。完善真实车商资料后，平台可以更准确地识别您的企业身份，帮助承运商更快确认订单并提供更匹配的服务。"
+        };
+      }
+      return {
+        title: "完善车商资料",
+        content: "您现在已经可以搜索承运商、联系承运商和发起订单。建议完善车商认证资料，便于平台更好地服务您的企业，提升承运商接单确认效率。"
+      };
+    },
+    showSearchVerificationPrompt() {
+      let title = "还未完成认证";
+      let content = "完成车商认证后，您可以搜索承运商、联系承运商并发起托运订单。";
+      if (this.status.reviewStatus === "PENDING") {
+        title = "认证审核中";
+        content = "您的车商认证正在审核中，审核通过后即可搜索承运商并发起订单。";
+      } else if (this.status.reviewStatus === "REJECTED") {
+        title = "认证未通过";
+        content = "您的车商认证未通过，请重新提交认证资料后再搜索承运商。";
+      }
+      common_vendor.index.showModal({
+        title,
+        content,
+        confirmText: this.status.reviewStatus === "PENDING" ? "查看进度" : "立即认证",
         cancelText: "稍后认证",
+        confirmColor: "#f97316",
         success: (res) => {
           if (res.confirm) {
             this.goVerify();
@@ -112,7 +183,33 @@ const _sfc_main = {
       common_vendor.index.navigateTo({ url });
     },
     goLogin() {
-      common_vendor.index.navigateTo({ url: "/pages/auth/login" });
+      var _a;
+      (_a = this.$refs.loginSheet) == null ? void 0 : _a.open("搜索承运商");
+      return;
+    },
+    handleLoginSuccess() {
+      this.isLoggedIn = true;
+      this.loadStatus();
+    },
+    clearRouteSearchFields() {
+      this.form.originProvinceId = "";
+      this.form.originProvinceName = "";
+      this.form.originCityId = "";
+      this.form.originCityName = "";
+      this.form.destinationProvinceId = "";
+      this.form.destinationProvinceName = "";
+      this.form.destinationCityId = "";
+      this.form.destinationCityName = "";
+    },
+    switchSearchType(type) {
+      if (this.searchType === type)
+        return;
+      this.searchType = type;
+      if (type === "route") {
+        this.form.keyword = "";
+        return;
+      }
+      this.clearRouteSearchFields();
     },
     triggerCityPicker(type) {
       this.activePicker = type;
@@ -150,9 +247,8 @@ const _sfc_main = {
         this.goLogin();
         return;
       }
-      if (this.status.reviewStatus !== "APPROVED") {
-        common_vendor.index.showToast({ title: "请先完成车商认证", icon: "none" });
-        this.goVerify();
+      if (this.needsVerification) {
+        this.showSearchVerificationPrompt();
         return;
       }
       if (this.searchType === "route") {
@@ -171,7 +267,17 @@ const _sfc_main = {
           destinationCityId: this.form.destinationCityId,
           timeText: this.getFormattedTime()
         });
-        const query = utils_api.toQuery(this.form);
+        const query = utils_api.toQuery({
+          originProvinceId: this.form.originProvinceId,
+          originProvinceName: this.form.originProvinceName,
+          originCityId: this.form.originCityId,
+          originCityName: this.form.originCityName,
+          destinationProvinceId: this.form.destinationProvinceId,
+          destinationProvinceName: this.form.destinationProvinceName,
+          destinationCityId: this.form.destinationCityId,
+          destinationCityName: this.form.destinationCityName,
+          transportMode: this.form.transportMode
+        });
         common_vendor.index.navigateTo({ url: `/pages/search/results?${query}` });
       } else {
         if (!this.form.keyword) {
@@ -185,6 +291,8 @@ const _sfc_main = {
       }
     },
     onRecentRouteClick(r) {
+      this.searchType = "route";
+      this.form.keyword = "";
       this.form.originCityName = r.origin;
       this.form.destinationCityName = r.destination;
       this.form.originProvinceId = r.originProvinceId || "";
@@ -235,57 +343,52 @@ const _sfc_main = {
   }
 };
 if (!Array) {
-  const _easycom_dealer_icon2 = common_vendor.resolveComponent("dealer-icon");
   const _easycom_region_picker2 = common_vendor.resolveComponent("region-picker");
-  (_easycom_dealer_icon2 + _easycom_region_picker2)();
+  const _easycom_miniapp_login_sheet2 = common_vendor.resolveComponent("miniapp-login-sheet");
+  (_easycom_region_picker2 + _easycom_miniapp_login_sheet2)();
 }
-const _easycom_dealer_icon = () => "../../components/dealer-icon/dealer-icon.js";
 const _easycom_region_picker = () => "../../components/region-picker/region-picker.js";
+const _easycom_miniapp_login_sheet = () => "../../components/miniapp-login-sheet/miniapp-login-sheet.js";
 if (!Math) {
-  (_easycom_dealer_icon + _easycom_region_picker)();
+  (_easycom_region_picker + _easycom_miniapp_login_sheet)();
 }
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
-    a: !$data.isLoggedIn || $data.status.reviewStatus !== "APPROVED"
-  }, !$data.isLoggedIn || $data.status.reviewStatus !== "APPROVED" ? {
+    a: !$data.isLoggedIn || $options.needsVerification
+  }, !$data.isLoggedIn || $options.needsVerification ? {
     b: common_vendor.t($options.floatNoticeText),
     c: common_vendor.t($options.floatNoticeDesc),
     d: common_vendor.t($options.floatButtonText),
-    e: common_vendor.o((...args) => $options.handleAccountNotice && $options.handleAccountNotice(...args), "78"),
-    f: common_vendor.o((...args) => $options.handleAccountNotice && $options.handleAccountNotice(...args), "fc")
+    e: common_vendor.o((...args) => $options.handleAccountNotice && $options.handleAccountNotice(...args), "62"),
+    f: common_vendor.o((...args) => $options.handleAccountNotice && $options.handleAccountNotice(...args), "18")
   } : {}, {
     g: common_assets._imports_0,
     h: $data.searchType === "route" ? 1 : "",
-    i: common_vendor.o(($event) => $data.searchType = "route", "d9"),
+    i: common_vendor.o(($event) => $options.switchSearchType("route"), "3f"),
     j: $data.searchType === "carrier" ? 1 : "",
-    k: common_vendor.o(($event) => $data.searchType = "carrier", "6e"),
+    k: common_vendor.o(($event) => $options.switchSearchType("carrier"), "07"),
     l: $data.searchType === "route"
   }, $data.searchType === "route" ? {
     m: common_vendor.t($data.form.originCityName || "请选择出发地"),
     n: !$data.form.originCityName ? 1 : "",
-    o: common_vendor.o(($event) => $options.triggerCityPicker("origin"), "11"),
-    p: common_vendor.o((...args) => $options.swapCities && $options.swapCities(...args), "43"),
+    o: common_vendor.o(($event) => $options.triggerCityPicker("origin"), "ac"),
+    p: common_vendor.o((...args) => $options.swapCities && $options.swapCities(...args), "34"),
     q: common_vendor.t($data.form.destinationCityName || "请选择目的地"),
     r: !$data.form.destinationCityName ? 1 : "",
-    s: common_vendor.o(($event) => $options.triggerCityPicker("destination"), "48"),
+    s: common_vendor.o(($event) => $options.triggerCityPicker("destination"), "c9"),
     t: $data.searching,
-    v: common_vendor.o((...args) => $options.search && $options.search(...args), "24")
+    v: common_vendor.o((...args) => $options.search && $options.search(...args), "1b")
   } : {
-    w: common_vendor.p({
-      name: "search",
-      size: "sm",
-      color: "#a3a3a3"
-    }),
-    x: $data.form.keyword,
-    y: common_vendor.o(($event) => $data.form.keyword = $event.detail.value, "9b"),
-    z: $data.searching,
-    A: common_vendor.o((...args) => $options.search && $options.search(...args), "a3")
+    w: $data.form.keyword,
+    x: common_vendor.o(($event) => $data.form.keyword = $event.detail.value, "d1"),
+    y: $data.searching,
+    z: common_vendor.o((...args) => $options.search && $options.search(...args), "2c")
   }, {
-    B: $data.searchType === "route"
+    A: $data.searchType === "route"
   }, $data.searchType === "route" ? common_vendor.e({
-    C: $data.recentRoutes.length
+    B: $data.recentRoutes.length
   }, $data.recentRoutes.length ? {
-    D: common_vendor.f($data.recentRoutes, (r, idx, i0) => {
+    C: common_vendor.f($data.recentRoutes, (r, idx, i0) => {
       return {
         a: common_vendor.t(r.origin),
         b: common_vendor.t(r.destination),
@@ -295,11 +398,13 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       };
     })
   } : {}) : {}, {
-    E: common_vendor.sr("regionPicker", "736db103-1"),
-    F: common_vendor.o($options.onRegionSelect, "80"),
-    G: common_vendor.p({
+    D: common_vendor.sr("regionPicker", "736db103-0"),
+    E: common_vendor.o($options.onRegionSelect, "8d"),
+    F: common_vendor.p({
       title: $options.pickerTitle
-    })
+    }),
+    G: common_vendor.sr("loginSheet", "736db103-1"),
+    H: common_vendor.o($options.handleLoginSuccess, "09")
   });
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

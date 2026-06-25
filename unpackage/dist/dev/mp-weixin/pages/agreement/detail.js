@@ -1,8 +1,11 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
+const utils_api = require("../../utils/api.js");
 const agreements = {
   terms: {
     title: "车商注册协议",
+    effectiveDate: "2026-06-07",
+    version: "",
     summary: "本协议适用于车商通过平台搜索承运商、发起托运订单、支付担保交易费并跟踪履约过程。",
     sections: [
       {
@@ -58,6 +61,8 @@ const agreements = {
   },
   privacy: {
     title: "车商隐私协议",
+    effectiveDate: "2026-06-07",
+    version: "",
     summary: "本协议说明平台在车商端收集、使用和保护个人信息、企业资料、订单信息及联系记录的方式。",
     sections: [
       {
@@ -73,14 +78,14 @@ const agreements = {
         heading: "二、信息使用目的",
         paragraphs: [
           "我们会将收集的信息用于账号登录、身份核验、承运商搜索、联系授权、订单创建、担保交易费支付、履约跟踪和通知提醒。",
-          "我们会根据认证状态、订单状态、支付状态等业务规则判断您是否可以搜索、联系、下单、确认合同、处理取消或确认收车。",
+          "我们会根据认证状态、订单状态、支付状态等业务规则判断您是否可以搜索、联系、下单、处理取消或确认收车。",
           "我们会对必要的操作记录进行留存，用于客服核验、争议处理、财务对账、安全审计和法律法规要求的合规留存。"
         ]
       },
       {
         heading: "三、信息共享与展示",
         paragraphs: [
-          "在您发起订单、确认合同或履约沟通时，必要的车商名称、联系人、联系电话、车辆与线路信息可能展示给对应承运商。",
+          "在您发起订单、确认订单信息或履约沟通时，必要的车商名称、联系人、联系电话、车辆与线路信息可能展示给对应承运商。",
           "平台不会向无关第三方出售您的个人信息或企业资料。因支付、文件存储、通知发送等必要服务需要共享时，我们会限定共享范围。",
           "后台管理员可在履行审核、订单管理、钱包管理、争议处理等职责时查看必要信息，并应遵守平台管理规范。"
         ]
@@ -107,24 +112,76 @@ const agreements = {
 const _sfc_main = {
   data() {
     return {
-      type: "terms"
+      type: "terms",
+      remoteAgreement: null,
+      loading: false
     };
   },
   computed: {
     agreement() {
+      if (this.type === "guarantee" && this.remoteAgreement)
+        return this.remoteAgreement;
       return agreements[this.type] || agreements.terms;
     }
   },
   onLoad(options) {
-    this.type = (options == null ? void 0 : options.type) === "privacy" ? "privacy" : "terms";
+    this.type = ["privacy", "guarantee"].includes(options == null ? void 0 : options.type) ? options.type : "terms";
     common_vendor.index.setNavigationBarTitle({ title: this.agreement.title });
+    if (this.type === "guarantee") {
+      this.loadGuaranteeAgreement();
+    }
+  },
+  methods: {
+    parsePlainTextAgreement(data = {}) {
+      const fallbackTitle = data.title || "担保交易服务协议";
+      const sections = String(data.content || "").split(/\n{2,}/).map((block) => block.trim()).filter(Boolean).map((block) => {
+        const lines = block.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+        return {
+          heading: lines[0] || fallbackTitle,
+          paragraphs: lines.length > 1 ? lines.slice(1) : [""]
+        };
+      });
+      return {
+        title: fallbackTitle,
+        effectiveDate: data.effectiveDate || "",
+        version: data.version || "",
+        summary: "本协议适用于车商支付平台担保交易服务费时使用的电子合同与限时达服务。",
+        sections: sections.length ? sections : [{ heading: "协议内容", paragraphs: ["协议内容暂未配置，请联系平台客服。"] }]
+      };
+    },
+    async loadGuaranteeAgreement() {
+      this.loading = true;
+      try {
+        const result = await utils_api.api.guaranteeServiceAgreement({ silent: true });
+        this.remoteAgreement = this.parsePlainTextAgreement(result);
+        common_vendor.index.setNavigationBarTitle({ title: this.remoteAgreement.title });
+      } catch (error) {
+        this.remoteAgreement = {
+          title: "担保交易服务协议",
+          effectiveDate: "",
+          version: "",
+          summary: "协议内容暂时无法加载，请稍后重试或联系平台客服。",
+          sections: [{ heading: "协议内容加载失败", paragraphs: ["请检查网络后重新打开本页面。"] }]
+        };
+        common_vendor.index.setNavigationBarTitle({ title: this.remoteAgreement.title });
+      } finally {
+        this.loading = false;
+      }
+    }
   }
 };
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
-  return {
+  return common_vendor.e({
     a: common_vendor.t($options.agreement.title),
-    b: common_vendor.t($options.agreement.summary),
-    c: common_vendor.f($options.agreement.sections, (section, k0, i0) => {
+    b: common_vendor.t($options.agreement.effectiveDate || "2026-06-07"),
+    c: $options.agreement.version
+  }, $options.agreement.version ? {
+    d: common_vendor.t($options.agreement.version)
+  } : {}, {
+    e: common_vendor.t($options.agreement.summary),
+    f: $data.loading
+  }, $data.loading ? {} : {
+    g: common_vendor.f($options.agreement.sections, (section, k0, i0) => {
       return {
         a: common_vendor.t(section.heading),
         b: common_vendor.f(section.paragraphs, (paragraph, k1, i1) => {
@@ -136,7 +193,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         c: section.heading
       };
     })
-  };
+  });
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);
 wx.createPage(MiniProgramPage);

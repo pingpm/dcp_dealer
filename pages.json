@@ -73,12 +73,6 @@
       }
     },
     {
-      "path": "pages/order/contract",
-      "style": {
-        "navigationBarTitleText": "模拟合同"
-      }
-    },
-    {
       "path": "pages/order/cancel-request",
       "style": {
         "navigationBarTitleText": "取消订单"

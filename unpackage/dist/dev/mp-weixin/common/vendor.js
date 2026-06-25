@@ -7136,9 +7136,9 @@ function isConsoleWritable() {
   return isWritable;
 }
 function initRuntimeSocketService() {
-  const hosts = "127.0.0.1,192.168.96.68";
+  const hosts = "127.0.0.1,192.168.97.71";
   const port = "8090";
-  const id = "mp-weixin_iHqLoX";
+  const id = "mp-weixin_dOD5HT";
   const lazy = typeof swan !== "undefined";
   let restoreError = lazy ? () => {
   } : initOnError();
@@ -8158,12 +8158,6 @@ const pages = [
     }
   },
   {
-    path: "pages/order/contract",
-    style: {
-      navigationBarTitleText: "模拟合同"
-    }
-  },
-  {
     path: "pages/order/cancel-request",
     style: {
       navigationBarTitleText: "取消订单"
@@ -8534,7 +8528,7 @@ class v {
 function I(e2) {
   return e2 && "string" == typeof e2 ? JSON.parse(e2) : e2;
 }
-const S = true, b = "mp-weixin", A = I(define_process_env_UNI_SECURE_NETWORK_CONFIG_default), T = b, C = I('{"address":["127.0.0.1","192.168.96.68"],"servePort":7001,"debugPort":9000,"initialLaunchType":"local","skipFiles":["<node_internals>/**","/Applications/HBuilderX.app/Contents/HBuilderX/plugins/unicloud/**/*.js"]}'), P = I('[{"provider":"alipay","spaceName":"dev-alipay","spaceId":"env-00jy66atbto1","spaceAppId":"2021006145680009","accessKey":"TRTJB3YXJNfON0Rj","secretKey":"x0tRpF3x8DlpVDYt","endpoint":"https://env-00jy66atbto1.api-hz.cloudbasefunction.cn","failoverEndpoint":""}]') || [];
+const S = true, b = "mp-weixin", A = I(define_process_env_UNI_SECURE_NETWORK_CONFIG_default), T = b, C = I('{"address":["127.0.0.1","192.168.97.71"],"servePort":7001,"debugPort":9000,"initialLaunchType":"local","skipFiles":["<node_internals>/**","/Applications/HBuilderX.app/Contents/HBuilderX/plugins/unicloud/**/*.js"]}'), P = I('[{"provider":"alipay","spaceName":"dev-alipay","spaceId":"env-00jy66atbto1","spaceAppId":"2021006145680009","accessKey":"TRTJB3YXJNfON0Rj","secretKey":"x0tRpF3x8DlpVDYt","endpoint":"https://env-00jy66atbto1.api-hz.cloudbasefunction.cn","failoverEndpoint":""}]') || [];
 let E = "";
 try {
   E = "__UNI__A1E8C65";
@@ -11233,7 +11227,7 @@ let yr = new class {
   }();
 })();
 var define_process_env_UNI_STATISTICS_CONFIG_default = { enable: true };
-var define_process_env_UNI_STAT_TITLE_JSON_default = { "pages/home/index": "运车管家", "pages/auth/login": "登录", "pages/agreement/detail": "协议详情", "pages/verification/status": "认证状态", "pages/verification/form": "车商认证", "pages/search/results": "搜索结果", "pages/order/create": "填写订单", "pages/order/list": "订单", "pages/order/detail": "订单详情", "pages/order/transit-track": "在途位置", "pages/order/drivers": "司机信息", "pages/order/edit": "修改订单", "pages/order/contract": "模拟合同", "pages/order/cancel-request": "取消订单", "pages/order/cancel-handle": "处理取消", "pages/order/cancel-logs": "协商历史", "pages/order/compensation-request": "申请赔付", "pages/order/compensation-detail": "赔付详情", "pages/account/index": "我的", "pages/account/settings": "设置" };
+var define_process_env_UNI_STAT_TITLE_JSON_default = { "pages/home/index": "运车管家", "pages/auth/login": "登录", "pages/agreement/detail": "协议详情", "pages/verification/status": "认证状态", "pages/verification/form": "车商认证", "pages/search/results": "搜索结果", "pages/order/create": "填写订单", "pages/order/list": "订单", "pages/order/detail": "订单详情", "pages/order/transit-track": "在途位置", "pages/order/drivers": "司机信息", "pages/order/edit": "修改订单", "pages/order/cancel-request": "取消订单", "pages/order/cancel-handle": "处理取消", "pages/order/cancel-logs": "协商历史", "pages/order/compensation-request": "申请赔付", "pages/order/compensation-detail": "赔付详情", "pages/account/index": "我的", "pages/account/settings": "设置" };
 const sys = index.getSystemInfoSync();
 const STAT_VERSION = "5.07";
 const STAT_URL = "https://tongji.dcloud.io/uni/stat";

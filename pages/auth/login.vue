@@ -3,9 +3,27 @@
     <view class="login-card">
       <view class="login-card-header">
         <view class="card-title">手机号快捷登录</view>
+        <!-- #ifdef MP-WEIXIN -->
+        <view class="card-subtitle">微信小程序可授权手机号一键登录</view>
+        <!-- #endif -->
+        <!-- #ifndef MP-WEIXIN -->
         <view class="card-subtitle">新手机号首次登录将自动为您注册账号</view>
+        <!-- #endif -->
       </view>
 
+      <!-- #ifdef MP-WEIXIN -->
+      <button
+        class="primary-btn login-btn wechat-login-btn"
+        open-type="getPhoneNumber"
+        :loading="wechatLoading"
+        :disabled="wechatLoading || loading"
+        @getphonenumber="wechatPhoneLogin"
+      >
+        微信手机号快捷登录
+      </button>
+      <!-- #endif -->
+
+      <!-- #ifndef MP-WEIXIN -->
       <view class="field">
         <text class="label">手机号码</text>
         <view class="input-wrapper">
@@ -42,6 +60,7 @@
       <button class="primary-btn login-btn" :loading="loading" @click="login">
         登录 / 注册
       </button>
+      <!-- #endif -->
 
       <view class="agreement-wrapper">
         <label class="agreement-checkbox" @click="toggleAgreement">
@@ -72,6 +91,7 @@ export default {
       phone: '',
       verificationCode: '',
       loading: false,
+      wechatLoading: false,
       codeLoading: false,
       countdown: 0,
       countdownTimer: null,
@@ -147,6 +167,29 @@ export default {
         this.loading = false;
       }
     },
+    async wechatPhoneLogin(event) {
+      if (!this.validateAgreement()) {
+        return;
+      }
+      const detail = event.detail || {};
+      if (detail.errMsg && !detail.errMsg.includes('ok')) {
+        uni.showToast({ title: '请授权手机号后登录', icon: 'none' });
+        return;
+      }
+      if (!detail.code) {
+        uni.showToast({ title: '微信未返回手机号授权凭证', icon: 'none' });
+        return;
+      }
+      this.wechatLoading = true;
+      try {
+        const wxCode = await miniappLoginCode();
+        const data = await api.wechatPhoneLogin(detail.code, wxCode);
+        setSession(data);
+        goAfterLogin(data);
+      } finally {
+        this.wechatLoading = false;
+      }
+    },
   },
 };
 </script>
@@ -188,6 +231,10 @@ export default {
 
 .login-page .field {
   margin-bottom: 34rpx;
+}
+
+.wechat-login-btn {
+  margin-bottom: 28rpx;
 }
 
 .login-page .label {

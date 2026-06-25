@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": "修改订单",
   "usingComponents": {
-    "dealer-order-form": "../../components/dealer-order-form/dealer-order-form"
+    "dealer-order-form": "../../components/dealer-order-form/dealer-order-form",
+    "miniapp-login-sheet": "../../components/miniapp-login-sheet/miniapp-login-sheet"
   }
 }

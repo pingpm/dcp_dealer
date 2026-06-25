@@ -16,12 +16,15 @@
       <button class="secondary-btn footer-btn" @click="back">取消</button>
       <button class="primary-btn footer-btn" :loading="submitting" @click="save">保存修改</button>
     </view>
+    <miniapp-login-sheet ref="loginSheet" @success="handleLoginSuccess" />
   </view>
 </template>
 
 <script>
+import { miniappLoginPageMixin } from '../../utils/miniapp-login-page.js';
 import DealerOrderForm from '../../components/dealer-order-form/dealer-order-form.vue';
 import { api, requireLogin } from '../../utils/api.js';
+import { returnToOrderDetail } from '../../utils/order-edit-navigation.js';
 
 function routeFromOrder(order, prefix) {
   return {
@@ -41,6 +44,10 @@ function routeFromOrder(order, prefix) {
 function seedFromOrder(order, vehicles) {
   return {
     orderAmountYuan: ((order.orderAmountCent || 0) / 100).toFixed(2),
+    insuranceMaxAmountYuan:
+      order.insuranceMaxAmountCent === null || order.insuranceMaxAmountCent === undefined
+        ? ''
+        : (Number(order.insuranceMaxAmountCent) / 100).toFixed(2),
     agreedDate: order.agreedDeliveryTime ? order.agreedDeliveryTime.slice(0, 10) : '',
     form: {
       transportMode: order.transportMode || 'LARGE_TRUCK',
@@ -56,6 +63,8 @@ function seedFromOrder(order, vehicles) {
       sender: { name: order.senderName || '', phone: order.senderPhone || '' },
       receiver: { name: order.receiverName || '', phone: order.receiverPhone || '' },
       hasInvoice: Boolean(order.hasInvoice),
+      hasInsurance: Boolean(order.hasInsurance),
+      insuranceRemark: order.insuranceRemark || '',
       vehicles: vehicles.map((vehicle) => ({
         brandId: vehicle.brandId || '',
         brandName: vehicle.brandName || '',
@@ -76,6 +85,7 @@ function seedFromOrder(order, vehicles) {
 }
 
 export default {
+  mixins: [miniappLoginPageMixin],
   components: { DealerOrderForm },
   data() {
     return {
@@ -122,14 +132,14 @@ export default {
         await api.updateOrder(this.orderId, form.buildPayload());
         uni.showToast({ title: '修改成功', icon: 'success' });
         setTimeout(() => {
-          uni.redirectTo({ url: `/pages/order/detail?orderId=${this.orderId}` });
+          returnToOrderDetail({ orderId: this.orderId, shouldRefresh: true, uniApi: uni });
         }, 500);
       } finally {
         this.submitting = false;
       }
     },
     back() {
-      uni.redirectTo({ url: `/pages/order/detail?orderId=${this.orderId}` });
+      returnToOrderDetail({ orderId: this.orderId, uniApi: uni });
     },
   },
 };

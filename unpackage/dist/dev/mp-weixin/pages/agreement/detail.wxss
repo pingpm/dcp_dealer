@@ -27,6 +27,9 @@
   margin-top: 12rpx;
   color: #9ca3af;
   font-size: 22rpx;
+  display: flex;
+  gap: 18rpx;
+  flex-wrap: wrap;
 }
 .agreement-summary {
   margin-top: 20rpx;
@@ -49,6 +52,12 @@
 }
 .agreement-section:last-child {
   margin-bottom: 0;
+}
+.agreement-loading {
+  color: #64748b;
+  font-size: 26rpx;
+  text-align: center;
+  padding: 40rpx 0;
 }
 .section-heading {
   color: #111827;

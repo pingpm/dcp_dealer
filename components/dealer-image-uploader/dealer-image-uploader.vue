@@ -27,12 +27,7 @@
         :class="{ disabled: uploading }"
         @click="chooseImage"
       >
-        <dealer-icon
-          class="upload-card-icon"
-          :name="uploading ? 'hourglass' : 'plus'"
-          size="md"
-          color="#f97316"
-        />
+        <view class="upload-card-icon" :class="{ loading: uploading }"></view>
         <text class="upload-card-text">{{ uploadButtonText }}</text>
       </view>
 
@@ -48,6 +43,11 @@
 
 <script>
 import { uploadFile } from '../../utils/api.js';
+import {
+  DEALER_IMAGE_UPLOAD_MAX_BYTES,
+  formatUploadSize,
+  splitFilesBySize,
+} from '../../utils/upload-file-size.js';
 
 export default {
   name: 'DealerImageUploader',
@@ -146,11 +146,21 @@ export default {
         count: this.remainingCount,
         success: async (res) => {
           const tempFilePaths = res.tempFilePaths || [];
+          const tempFiles = res.tempFiles || [];
           if (!tempFilePaths.length) return;
+          const { uploadablePaths, rejectedFiles } = splitFilesBySize(tempFilePaths, tempFiles);
+          if (rejectedFiles.length) {
+            const title =
+              rejectedFiles.length === 1
+                ? `图片不能超过${formatUploadSize(DEALER_IMAGE_UPLOAD_MAX_BYTES)}，请压缩后重新上传`
+                : `已跳过${rejectedFiles.length}张超过${formatUploadSize(DEALER_IMAGE_UPLOAD_MAX_BYTES)}的图片`;
+            uni.showToast({ title, icon: 'none' });
+          }
+          if (!uploadablePaths.length) return;
           this.uploading = true;
           try {
             let nextFiles = this.maxCount === 1 ? [] : [...this.files];
-            for (const filePath of tempFilePaths) {
+            for (const filePath of uploadablePaths) {
               if (nextFiles.length >= this.maxCount) break;
               const file = await uploadFile(filePath, this.fileType, this.usageScene);
               const fileObj = { fileId: file.fileId, fileUrl: file.fileUrl };
@@ -232,6 +242,56 @@ export default {
 
 .upload-card.disabled {
   opacity: 0.6;
+}
+
+.upload-card-icon {
+  position: relative;
+  width: 48rpx;
+  height: 48rpx;
+  margin-bottom: 10rpx;
+  border-radius: 999rpx;
+}
+
+.upload-card-icon::before,
+.upload-card-icon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 999rpx;
+  background: #f97316;
+  transform: translate(-50%, -50%);
+}
+
+.upload-card-icon::before {
+  width: 34rpx;
+  height: 6rpx;
+}
+
+.upload-card-icon::after {
+  width: 6rpx;
+  height: 34rpx;
+}
+
+.upload-card-icon.loading {
+  border: 5rpx solid #fed7aa;
+  border-top-color: #f97316;
+  animation: upload-icon-spin 0.8s linear infinite;
+}
+
+.upload-card-icon.loading::before,
+.upload-card-icon.loading::after {
+  display: none;
+}
+
+@keyframes upload-icon-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .example-card {

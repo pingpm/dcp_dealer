@@ -2,6 +2,7 @@ import { API_BASE_URL } from '../config/api';
 
 const TOKEN_KEY = 'dealer_token';
 const PROFILE_KEY = 'dealer_profile';
+const MINIAPP_LOGIN_PROMPT_KEY = 'dealer_miniapp_login_prompt';
 
 export function getToken() {
   return uni.getStorageSync(TOKEN_KEY) || '';
@@ -21,9 +22,35 @@ export function getSession() {
   return uni.getStorageSync(PROFILE_KEY) || null;
 }
 
-export function requireLogin() {
+export function openLoginPrompt(payload = {}) {
+  const data = typeof payload === 'string' ? { actionText: payload } : payload;
+  // #ifdef MP-WEIXIN
+  uni.setStorageSync(MINIAPP_LOGIN_PROMPT_KEY, data || {});
+  uni.$emit('open-miniapp-login-sheet', data);
+  return true;
+  // #endif
+  // #ifndef MP-WEIXIN
+  uni.navigateTo({ url: '/pages/auth/login' });
+  return false;
+  // #endif
+}
+
+export function consumePendingLoginPrompt() {
+  // #ifdef MP-WEIXIN
+  const payload = uni.getStorageSync(MINIAPP_LOGIN_PROMPT_KEY) || null;
+  if (payload) {
+    uni.removeStorageSync(MINIAPP_LOGIN_PROMPT_KEY);
+  }
+  return payload;
+  // #endif
+  // #ifndef MP-WEIXIN
+  return null;
+  // #endif
+}
+
+export function requireLogin(payload = {}) {
   if (!getToken()) {
-    uni.reLaunch({ url: '/pages/auth/login' });
+    openLoginPrompt(payload);
     return false;
   }
   return true;
@@ -47,14 +74,14 @@ export function request(options) {
       success(res) {
         const body = res.data || {};
         if (res.statusCode >= 200 && res.statusCode < 300 && body.success) {
-          resolve(body.data);
+          resolve(normalizeFileUrls(body.data));
           return;
         }
         const message = body.message || '请求失败';
         if (res.statusCode === 401) {
           clearSession();
           if (options.authRedirect !== false) {
-            uni.reLaunch({ url: '/pages/auth/login' });
+            openLoginPrompt({ actionText: '重新登录' });
           }
         }
         if (!options.silent) {
@@ -90,7 +117,7 @@ export function uploadFile(filePath, fileType, usageScene = '') {
           return;
         }
         if (res.statusCode >= 200 && res.statusCode < 300 && body.success) {
-          resolve(body.data);
+          resolve(normalizeFileUrls(body.data));
           return;
         }
         const message = body.message || '上传失败';
@@ -103,6 +130,38 @@ export function uploadFile(filePath, fileType, usageScene = '') {
       },
     });
   });
+}
+
+export function resolveFileUrl(fileUrl) {
+  if (!fileUrl || typeof fileUrl !== 'string') return fileUrl || '';
+  if (/^(https?:|data:|blob:|file:|wxfile:)/i.test(fileUrl)) return fileUrl;
+  if (!fileUrl.startsWith('/uploads/')) return fileUrl;
+  const origin = fileServiceOrigin();
+  return origin ? `${origin}${fileUrl}` : fileUrl;
+}
+
+function fileServiceOrigin() {
+  const baseUrl = (API_BASE_URL || '').replace(/\/+$/, '');
+  const match = baseUrl.match(/^(https?:\/\/[^/]+)/i);
+  if (match) return match[1];
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+  return '';
+}
+
+function normalizeFileUrls(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeFileUrls(item));
+  }
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+  return Object.keys(value).reduce((next, key) => {
+    const item = value[key];
+    next[key] = key === 'fileUrl' ? resolveFileUrl(item) : normalizeFileUrls(item);
+    return next;
+  }, {});
 }
 
 export const api = {
@@ -145,6 +204,17 @@ export const api = {
       },
     });
   },
+  wechatPhoneLogin(phoneCode, wxCode) {
+    return request({
+      url: '/auth/miniapp/wechat-phone-login',
+      method: 'POST',
+      data: {
+        appType: 'DEALER_MINIAPP',
+        phoneCode,
+        wxCode,
+      },
+    });
+  },
   bindWechatOpenid(wxCode) {
     return request({
       url: '/auth/miniapp/wechat-openid',
@@ -163,6 +233,13 @@ export const api = {
   },
   verificationDetail() {
     return request({ url: '/dealer/verification' });
+  },
+  verificationCompanyNameCheck(params = {}) {
+    const query = toQuery(params);
+    return request({
+      url: `/dealer/verification/company-name-check${query ? `?${query}` : ''}`,
+      silent: true,
+    });
   },
   submitVerification(data) {
     return request({ url: '/dealer/verification', method: 'POST', data });
@@ -198,11 +275,24 @@ export const api = {
   searchCarriers(params) {
     return request({ url: `/dealer/carrier-search?${toQuery(params)}` });
   },
+  carrierPublicProfile(carrierId) {
+    return request({ url: `/dealer/carriers/${carrierId}/profile` });
+  },
   revealCarrierPhone(data) {
     return request({ url: '/dealer/contact/carrier-phone', method: 'POST', data });
   },
+  importDevTestFile(relativePath, fileType = 'IMAGE') {
+    return request({
+      url: '/dev/test-files/import',
+      method: 'POST',
+      data: { relativePath, fileType },
+    });
+  },
   platformGuaranteeService() {
     return request({ url: '/dealer/value-added-services/platform-guarantee' });
+  },
+  guaranteeServiceAgreement(options = {}) {
+    return request({ url: '/agreements/guarantee-service', authRedirect: false, ...options });
   },
   createOrder(data) {
     return request({ url: '/orders', method: 'POST', data });
@@ -226,14 +316,14 @@ export const api = {
     return request({ url: `/orders/${orderId}/guarantee-payment`, method: 'POST' });
     // #endif
   },
-  payment(paymentId) {
-    return request({ url: `/payments/${paymentId}` });
+  payment(paymentId, options = {}) {
+    return request({ url: `/payments/${paymentId}`, ...options });
   },
-  syncWechatPayment(paymentId) {
+  syncWechatPayment(paymentId, options = {}) {
     if (!paymentId) {
       return Promise.resolve({ synced: false, mock: true });
     }
-    return request({ url: `/payments/${paymentId}/wechat-sync`, method: 'POST' });
+    return request({ url: `/payments/${paymentId}/wechat-sync`, method: 'POST', ...options });
   },
   orders(params = {}, options = {}) {
     const query = toQuery(params);
@@ -244,12 +334,6 @@ export const api = {
   },
   confirmReceipt(orderId) {
     return request({ url: `/orders/${orderId}/receipt-confirm`, method: 'POST' });
-  },
-  contract(orderId) {
-    return request({ url: `/orders/${orderId}/contract` });
-  },
-  confirmContract(orderId) {
-    return request({ url: `/orders/${orderId}/contract/confirm`, method: 'POST' });
   },
   cancelOrder(orderId, cancelReason) {
     return request({

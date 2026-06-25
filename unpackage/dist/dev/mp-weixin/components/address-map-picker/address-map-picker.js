@@ -11,6 +11,10 @@ const _sfc_main = {
     placeholder: {
       type: String,
       default: "搜索园区、道路、公司名称"
+    },
+    allowManualAddress: {
+      type: Boolean,
+      default: true
     }
   },
   data() {
@@ -19,6 +23,7 @@ const _sfc_main = {
       provinceName: "",
       cityName: "",
       keyword: "",
+      manualAddress: "",
       searching: false,
       results: [],
       showSuggestions: false,
@@ -66,6 +71,7 @@ const _sfc_main = {
       this.provinceName = options.provinceName || "";
       this.cityName = options.cityName || "";
       this.keyword = options.keyword || options.name || options.address || "";
+      this.manualAddress = options.address || "";
       this.results = [];
       this.showSuggestions = false;
       this.selectedAddress = {
@@ -80,6 +86,9 @@ const _sfc_main = {
         districtName: options.districtName || "",
         districtId: options.districtId || ""
       };
+      if (options.defaultLng && options.defaultLat && !this.selectedAddress.lng) {
+        this.setMapPoint({ lng: options.defaultLng, lat: options.defaultLat, scale: 12 });
+      }
       this.visible = true;
       if (this.searchTimer) {
         clearTimeout(this.searchTimer);
@@ -186,6 +195,7 @@ const _sfc_main = {
     selectAddressResult(item) {
       this.selectedAddress = { ...item };
       this.keyword = item.name;
+      this.manualAddress = item.address || item.name || "";
       this.showSuggestions = false;
       this.setMapPoint({ lng: item.lng, lat: item.lat, scale: 16 });
     },
@@ -205,11 +215,28 @@ const _sfc_main = {
     },
     confirm() {
       const name = (this.selectedAddress.name || "").trim();
-      if (!name) {
+      const manualAddress = (this.manualAddress || "").trim();
+      if (!name && (!this.allowManualAddress || !manualAddress)) {
         common_vendor.index.showToast({ title: "请选择详细地址", icon: "none" });
         return;
       }
-      this.$emit("select", { ...this.selectedAddress });
+      if (this.allowManualAddress && !name && manualAddress) {
+        this.$emit("select", {
+          ...this.emptyAddress(),
+          name: manualAddress,
+          address: manualAddress,
+          provinceName: this.provinceName,
+          cityName: this.cityName,
+          lng: this.mapState.longitude || "",
+          lat: this.mapState.latitude || ""
+        });
+        this.close();
+        return;
+      }
+      this.$emit("select", {
+        ...this.selectedAddress,
+        address: this.selectedAddress.address || manualAddress
+      });
       this.close();
     }
   }
@@ -241,13 +268,18 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   } : {}, {
     m: $data.searching,
     n: common_vendor.o((...args) => $options.searchAddress && $options.searchAddress(...args), "e7"),
-    o: $data.mapState.latitude,
-    p: $data.mapState.longitude,
-    q: $data.mapState.scale,
-    r: $options.mapMarkers,
-    s: common_vendor.o((...args) => $options.onMapTap && $options.onMapTap(...args), "3e"),
-    t: common_vendor.o((...args) => $options.close && $options.close(...args), "94"),
-    v: common_vendor.o((...args) => $options.confirm && $options.confirm(...args), "85")
+    o: $props.allowManualAddress
+  }, $props.allowManualAddress ? {
+    p: $data.manualAddress,
+    q: common_vendor.o(($event) => $data.manualAddress = $event.detail.value, "96")
+  } : {}, {
+    r: $data.mapState.latitude,
+    s: $data.mapState.longitude,
+    t: $data.mapState.scale,
+    v: $options.mapMarkers,
+    w: common_vendor.o((...args) => $options.onMapTap && $options.onMapTap(...args), "23"),
+    x: common_vendor.o((...args) => $options.close && $options.close(...args), "73"),
+    y: common_vendor.o((...args) => $options.confirm && $options.confirm(...args), "4e")
   }) : {});
 }
 const Component = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

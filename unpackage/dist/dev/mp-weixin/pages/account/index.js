@@ -3,12 +3,17 @@ const common_vendor = require("../../common/vendor.js");
 const utils_api = require("../../utils/api.js");
 const utils_format = require("../../utils/format.js");
 const common_assets = require("../../common/assets.js");
+const MiniappLoginSheet = () => "../../components/miniapp-login-sheet/miniapp-login-sheet.js";
 const _sfc_main = {
+  components: {
+    MiniappLoginSheet
+  },
   data() {
     return {
       user: {},
       profile: {},
       reviewStatus: "UNVERIFIED",
+      dealerVerificationRequired: true,
       isLoggedIn: false,
       reviewStatusText: utils_format.reviewStatusText
     };
@@ -17,7 +22,7 @@ const _sfc_main = {
     profileDisplayName() {
       if (!this.isLoggedIn)
         return "立即登录";
-      return this.profile.companyName || this.profile.contactName || "未认证车商";
+      return this.profile.companyName || this.profile.contactName || "车商用户";
     },
     maskedPhone() {
       const phone = this.user.registeredPhone || this.profile.registeredPhone || "";
@@ -56,6 +61,8 @@ const _sfc_main = {
     dealerInfoBadge() {
       if (!this.isLoggedIn)
         return "";
+      if (!this.dealerVerificationRequired && this.reviewStatus !== "APPROVED")
+        return "可选完善";
       const badgeMap = {
         UNVERIFIED: "未认证",
         PENDING: "审核中",
@@ -72,6 +79,7 @@ const _sfc_main = {
       this.user = {};
       this.profile = {};
       this.reviewStatus = "UNVERIFIED";
+      this.dealerVerificationRequired = true;
     }
   },
   methods: {
@@ -82,12 +90,14 @@ const _sfc_main = {
         this.user = data.user || {};
         this.profile = data.profile || {};
         this.reviewStatus = data.reviewStatus;
+        this.dealerVerificationRequired = data.dealerVerificationRequired !== false;
       } catch (error) {
         if ((error == null ? void 0 : error.statusCode) === 401) {
           this.isLoggedIn = false;
           this.user = {};
           this.profile = {};
           this.reviewStatus = "UNVERIFIED";
+          this.dealerVerificationRequired = true;
         }
       }
     },
@@ -130,7 +140,13 @@ const _sfc_main = {
       this.goOrders();
     },
     goLogin() {
-      common_vendor.index.navigateTo({ url: "/pages/auth/login" });
+      var _a;
+      (_a = this.$refs.loginSheet) == null ? void 0 : _a.open("登录账号");
+      return;
+    },
+    async handleLoginSuccess() {
+      this.isLoggedIn = true;
+      await this.load();
     },
     handleProfileClick() {
       if (!this.isLoggedIn)
@@ -143,6 +159,8 @@ const _sfc_main = {
       return false;
     },
     ensureVerified(actionText = "继续操作") {
+      if (!this.dealerVerificationRequired)
+        return true;
       if (this.reviewStatus === "APPROVED")
         return true;
       common_vendor.index.showModal({
@@ -160,17 +178,9 @@ const _sfc_main = {
       return false;
     },
     promptLogin(actionText = "继续操作") {
-      common_vendor.index.showModal({
-        title: "需要登录",
-        content: `当前还未登录，请先登录后再${actionText}。`,
-        cancelText: "稍后登录",
-        confirmText: "立即登录",
-        confirmColor: "#f97316",
-        success: (res) => {
-          if (res.confirm)
-            this.goLogin();
-        }
-      });
+      var _a;
+      (_a = this.$refs.loginSheet) == null ? void 0 : _a.open(actionText);
+      return;
     },
     logout() {
       common_vendor.index.showModal({
@@ -191,6 +201,14 @@ const _sfc_main = {
     }
   }
 };
+if (!Array) {
+  const _easycom_miniapp_login_sheet2 = common_vendor.resolveComponent("miniapp-login-sheet");
+  _easycom_miniapp_login_sheet2();
+}
+const _easycom_miniapp_login_sheet = () => "../../components/miniapp-login-sheet/miniapp-login-sheet.js";
+if (!Math) {
+  _easycom_miniapp_login_sheet();
+}
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
     a: common_assets._imports_0$4,
@@ -214,7 +232,9 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         f: item.key,
         g: common_vendor.o(($event) => $options.handleMenuClick(item.key), item.key)
       });
-    })
+    }),
+    i: common_vendor.sr("loginSheet", "ae3d86c2-0"),
+    j: common_vendor.o($options.handleLoginSuccess, "00")
   });
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

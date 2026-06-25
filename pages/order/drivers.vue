@@ -57,13 +57,16 @@
     <view v-if="pageReady && !pickupDriver && !deliveryDriver" class="section driver-empty-page">
       <text>承运商暂未设置司机信息</text>
     </view>
+    <miniapp-login-sheet ref="loginSheet" @success="handleLoginSuccess" />
   </view>
 </template>
 
 <script>
+import { miniappLoginPageMixin } from '../../utils/miniapp-login-page.js';
 import { api, requireLogin } from '../../utils/api.js';
 
 export default {
+  mixins: [miniappLoginPageMixin],
   data() {
     return {
       orderId: '',

@@ -33,28 +33,35 @@
   background: #ffffff;
   border-bottom: 1rpx solid #f1f5f9;
   box-shadow: 0 4rpx 16rpx rgba(31, 35, 41, 0.03);
+  white-space: nowrap;
 }
 .tabs-wrapper-v2 {
   display: flex;
-  justify-content: space-around;
+  justify-content: flex-start;
   align-items: center;
   height: 96rpx;
-  padding: 0 10rpx;
+  min-width: 100%;
+  padding: 0 18rpx;
+  box-sizing: border-box;
 }
 .tab-item-v2 {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
+  min-width: 116rpx;
   height: 100%;
   position: relative;
-  padding: 0 16rpx;
+  padding: 0 10rpx;
+  box-sizing: border-box;
   cursor: pointer;
 }
 .tab-label-v2 {
   font-size: 26rpx;
   color: var(--text-weak);
   font-weight: 700;
+  white-space: nowrap;
   transition: all 0.25s ease;
 }
 .tab-underline-v2 {
@@ -101,16 +108,6 @@
   font-size: 22rpx;
   color: var(--text-weak);
   margin-top: 10rpx;
-  margin-bottom: 40rpx;
-}
-.empty-btn-v2 {
-  background: var(--primary-gradient);
-  min-width: 240rpx;
-  height: 80rpx;
-  border-radius: 40rpx;
-  font-size: 26rpx;
-  font-weight: 800;
-  box-shadow: 0 6rpx 16rpx rgba(249, 115, 22, 0.15);
 }
 
 /* V2 Order List Card layout */

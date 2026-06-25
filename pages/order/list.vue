@@ -1,7 +1,7 @@
 <template>
   <view class="page order-list-page">
     <!-- Scrolling Tab Bar -->
-    <view class="tabs-scroll-container">
+    <scroll-view scroll-x class="tabs-scroll-container" :show-scrollbar="false">
       <view class="tabs-wrapper-v2">
         <view
           v-for="item in tabs"
@@ -14,7 +14,7 @@
           <view class="tab-underline-v2" v-if="activeStatus === item.value"></view>
         </view>
       </view>
-    </view>
+    </scroll-view>
 
     <view v-if="!isLoggedIn" class="guest-prompt-card order-guest-card">
       <text class="guest-prompt-icon">!</text>
@@ -32,7 +32,6 @@
       </view>
       <text class="empty-text-v2">您当前暂无该状态下的订单</text>
       <text class="empty-subtext-v2">前往首页搜索承运商，即可立即发起托运订单</text>
-      <button class="primary-btn empty-btn-v2" @click="goHome">去首页看看</button>
     </view>
 
     <!-- Order Cards -->
@@ -129,16 +128,6 @@
             </button>
           </block>
 
-          <!-- Status: PENDING_CONTRACT -->
-          <block v-else-if="order.orderStatus === 'PENDING_CONTRACT'">
-            <button class="secondary-btn card-action-btn-v2" @click="contactCarrier(order)">
-              联系承运商
-            </button>
-            <button class="primary-btn card-action-btn-v2" @click="signContract(order)">
-              合同签署
-            </button>
-          </block>
-
           <!-- Status: PENDING_PICKUP -->
           <block v-else-if="order.orderStatus === 'PENDING_PICKUP'">
             <button class="secondary-btn card-action-btn-v2" @click="goDetail(order.id)">
@@ -178,11 +167,13 @@
         </view>
       </view>
     </block>
+    <miniapp-login-sheet ref="loginSheet" @success="handleLoginSuccess" />
   </view>
 </template>
 
 <script>
-import { api, getToken } from '../../utils/api.js';
+import { api, getToken, openLoginPrompt } from '../../utils/api.js';
+import MiniappLoginSheet from '../../components/miniapp-login-sheet/miniapp-login-sheet.vue';
 import {
   dateText,
   orderStatusText,
@@ -194,6 +185,9 @@ import {
 const PENDING_ORDER_DETAIL_KEY = 'dealer_pending_order_detail';
 
 export default {
+  components: {
+    MiniappLoginSheet,
+  },
   data() {
     return {
       activeStatus: '',
@@ -204,11 +198,14 @@ export default {
       transportModeText,
       tabs: [
         { label: '全部', value: '' },
+        { label: '待支付', value: 'PENDING_PAYMENT' },
         { label: '待确认', value: 'PENDING_CONFIRM' },
         { label: '待提车', value: 'PENDING_PICKUP' },
         { label: '运输中', value: 'IN_TRANSIT' },
         { label: '待收车', value: 'PENDING_RECEIPT' },
         { label: '已完成', value: 'COMPLETED' },
+        { label: '取消中', value: 'CANCEL_PENDING' },
+        { label: '已取消', value: 'CANCELED' },
       ],
     };
   },
@@ -281,7 +278,16 @@ export default {
       if (this.isLoggedIn) this.load();
     },
     goLogin() {
-      uni.navigateTo({ url: '/pages/auth/login' });
+      // #ifdef MP-WEIXIN
+      this.$refs.loginSheet?.open('查看订单');
+      return;
+      // #endif
+      openLoginPrompt({ actionText: '查看订单' });
+    },
+    async handleLoginSuccess() {
+      this.isLoggedIn = true;
+      await this.load();
+      this.openPendingOrderDetail();
     },
     goDetail(orderId) {
       uni.navigateTo({ url: `/pages/order/detail?orderId=${orderId}` });
@@ -305,14 +311,8 @@ export default {
       const query = pending.paymentSuccess ? '&paymentSuccess=1' : '';
       uni.navigateTo({ url: `/pages/order/detail?orderId=${pending.orderId}${query}` });
     },
-    goHome() {
-      uni.switchTab({ url: '/pages/home/index' });
-    },
     async contactCarrier(order) {
       uni.navigateTo({ url: `/pages/order/detail?orderId=${order.id}` });
-    },
-    signContract(order) {
-      uni.navigateTo({ url: `/pages/order/contract?orderId=${order.id}` });
     },
     goDrivers(orderId) {
       uni.navigateTo({ url: `/pages/order/drivers?orderId=${orderId}` });
@@ -387,6 +387,7 @@ export default {
   background: #ffffff;
   border-bottom: 1rpx solid #f1f5f9;
   box-shadow: 0 4rpx 16rpx rgba(31, 35, 41, 0.03);
+  white-space: nowrap;
 }
 
 /* #ifdef H5 */
@@ -397,10 +398,12 @@ export default {
 
 .tabs-wrapper-v2 {
   display: flex;
-  justify-content: space-around;
+  justify-content: flex-start;
   align-items: center;
   height: 96rpx;
-  padding: 0 10rpx;
+  min-width: 100%;
+  padding: 0 18rpx;
+  box-sizing: border-box;
 }
 
 .tab-item-v2 {
@@ -408,9 +411,12 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
+  min-width: 116rpx;
   height: 100%;
   position: relative;
-  padding: 0 16rpx;
+  padding: 0 10rpx;
+  box-sizing: border-box;
   cursor: pointer;
 }
 
@@ -418,6 +424,7 @@ export default {
   font-size: 26rpx;
   color: var(--text-weak);
   font-weight: 700;
+  white-space: nowrap;
   transition: all 0.25s ease;
 }
 
@@ -469,17 +476,6 @@ export default {
   font-size: 22rpx;
   color: var(--text-weak);
   margin-top: 10rpx;
-  margin-bottom: 40rpx;
-}
-
-.empty-btn-v2 {
-  background: var(--primary-gradient);
-  min-width: 240rpx;
-  height: 80rpx;
-  border-radius: 40rpx;
-  font-size: 26rpx;
-  font-weight: 800;
-  box-shadow: 0 6rpx 16rpx rgba(249, 115, 22, 0.15);
 }
 
 /* V2 Order List Card layout */

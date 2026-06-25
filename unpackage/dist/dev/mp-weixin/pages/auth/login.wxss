@@ -31,6 +31,9 @@
 .login-page .field {
   margin-bottom: 34rpx;
 }
+.wechat-login-btn {
+  margin-bottom: 28rpx;
+}
 .login-page .label {
   margin-bottom: 16rpx;
   color: #424242;

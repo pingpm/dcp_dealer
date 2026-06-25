@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "司机信息",
-  "usingComponents": {}
+  "usingComponents": {
+    "miniapp-login-sheet": "../../components/miniapp-login-sheet/miniapp-login-sheet"
+  }
 }

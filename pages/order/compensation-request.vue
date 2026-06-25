@@ -69,14 +69,17 @@
     <view class="fixed-footer">
       <button class="primary-btn w-full" :loading="submitting" @click="submit">提交赔付申请</button>
     </view>
+    <miniapp-login-sheet ref="loginSheet" @success="handleLoginSuccess" />
   </view>
 </template>
 
 <script>
+import { miniappLoginPageMixin } from '../../utils/miniapp-login-page.js';
 import { api, requireLogin, uploadFile } from '../../utils/api.js';
 import { dateText, yuanText } from '../../utils/format.js';
 
 export default {
+  mixins: [miniappLoginPageMixin],
   data() {
     return {
       orderId: '',

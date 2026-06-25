@@ -25,6 +25,14 @@ const _sfc_main = {
     }
   },
   computed: {
+    cssIconStyle() {
+      const size = sizeMap[this.size] || this.size || sizeMap.md;
+      return {
+        width: size,
+        height: size,
+        color: this.color
+      };
+    },
     iconStyle() {
       const size = sizeMap[this.size] || this.size || sizeMap.md;
       const src = `/static/icons/${this.name}.svg`;
@@ -39,9 +47,13 @@ const _sfc_main = {
   }
 };
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
-  return {
-    a: common_vendor.s($options.iconStyle)
-  };
+  return common_vendor.e({
+    a: $props.name === "package-open"
+  }, $props.name === "package-open" ? {} : $props.name === "hourglass" ? {} : $props.name === "triangle-alert" ? {} : {}, {
+    b: $props.name === "hourglass",
+    c: $props.name === "triangle-alert",
+    d: common_vendor.s($options.cssIconStyle)
+  });
 }
 const Component = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);
 wx.createComponent(Component);

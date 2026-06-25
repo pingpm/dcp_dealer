@@ -3,8 +3,12 @@ const common_vendor = require("../../common/vendor.js");
 const utils_api = require("../../utils/api.js");
 const utils_format = require("../../utils/format.js");
 const common_assets = require("../../common/assets.js");
+const MiniappLoginSheet = () => "../../components/miniapp-login-sheet/miniapp-login-sheet.js";
 const PENDING_ORDER_DETAIL_KEY = "dealer_pending_order_detail";
 const _sfc_main = {
+  components: {
+    MiniappLoginSheet
+  },
   data() {
     return {
       activeStatus: "",
@@ -15,11 +19,14 @@ const _sfc_main = {
       transportModeText: utils_format.transportModeText,
       tabs: [
         { label: "全部", value: "" },
+        { label: "待支付", value: "PENDING_PAYMENT" },
         { label: "待确认", value: "PENDING_CONFIRM" },
         { label: "待提车", value: "PENDING_PICKUP" },
         { label: "运输中", value: "IN_TRANSIT" },
         { label: "待收车", value: "PENDING_RECEIPT" },
-        { label: "已完成", value: "COMPLETED" }
+        { label: "已完成", value: "COMPLETED" },
+        { label: "取消中", value: "CANCEL_PENDING" },
+        { label: "已取消", value: "CANCELED" }
       ]
     };
   },
@@ -93,7 +100,14 @@ const _sfc_main = {
         this.load();
     },
     goLogin() {
-      common_vendor.index.navigateTo({ url: "/pages/auth/login" });
+      var _a;
+      (_a = this.$refs.loginSheet) == null ? void 0 : _a.open("查看订单");
+      return;
+    },
+    async handleLoginSuccess() {
+      this.isLoggedIn = true;
+      await this.load();
+      this.openPendingOrderDetail();
     },
     goDetail(orderId) {
       common_vendor.index.navigateTo({ url: `/pages/order/detail?orderId=${orderId}` });
@@ -117,14 +131,8 @@ const _sfc_main = {
       const query = pending.paymentSuccess ? "&paymentSuccess=1" : "";
       common_vendor.index.navigateTo({ url: `/pages/order/detail?orderId=${pending.orderId}${query}` });
     },
-    goHome() {
-      common_vendor.index.switchTab({ url: "/pages/home/index" });
-    },
     async contactCarrier(order) {
       common_vendor.index.navigateTo({ url: `/pages/order/detail?orderId=${order.id}` });
-    },
-    signContract(order) {
-      common_vendor.index.navigateTo({ url: `/pages/order/contract?orderId=${order.id}` });
     },
     goDrivers(orderId) {
       common_vendor.index.navigateTo({ url: `/pages/order/drivers?orderId=${orderId}` });
@@ -149,11 +157,13 @@ const _sfc_main = {
 };
 if (!Array) {
   const _easycom_dealer_icon2 = common_vendor.resolveComponent("dealer-icon");
-  _easycom_dealer_icon2();
+  const _easycom_miniapp_login_sheet2 = common_vendor.resolveComponent("miniapp-login-sheet");
+  (_easycom_dealer_icon2 + _easycom_miniapp_login_sheet2)();
 }
 const _easycom_dealer_icon = () => "../../components/dealer-icon/dealer-icon.js";
+const _easycom_miniapp_login_sheet = () => "../../components/miniapp-login-sheet/miniapp-login-sheet.js";
 if (!Math) {
-  _easycom_dealer_icon();
+  (_easycom_dealer_icon + _easycom_miniapp_login_sheet)();
 }
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
@@ -169,16 +179,15 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     }),
     b: !$data.isLoggedIn
   }, !$data.isLoggedIn ? {
-    c: common_vendor.o((...args) => $options.goLogin && $options.goLogin(...args), "08")
+    c: common_vendor.o((...args) => $options.goLogin && $options.goLogin(...args), "dd")
   } : !$data.loading && $data.orders.length === 0 ? {
     e: common_vendor.p({
       name: "package-open",
       size: "xl",
       color: "#f97316"
-    }),
-    f: common_vendor.o((...args) => $options.goHome && $options.goHome(...args), "ba")
+    })
   } : $data.isLoggedIn ? {
-    h: common_vendor.f($data.orders, (order, k0, i0) => {
+    g: common_vendor.f($data.orders, (order, k0, i0) => {
       return common_vendor.e({
         a: common_vendor.t(order.carrierName || "承运商"),
         b: common_vendor.t($data.orderStatusText[order.orderStatus]),
@@ -211,35 +220,33 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       }, order.orderStatus === "PENDING_CONFIRM" ? {
         x: common_vendor.o(($event) => $options.contactCarrier(order), order.id),
         y: common_vendor.o(($event) => $options.goDetail(order.id), order.id)
-      } : order.orderStatus === "PENDING_CONTRACT" ? {
-        A: common_vendor.o(($event) => $options.contactCarrier(order), order.id),
-        B: common_vendor.o(($event) => $options.signContract(order), order.id)
       } : order.orderStatus === "PENDING_PICKUP" ? {
-        D: common_vendor.o(($event) => $options.goDetail(order.id), order.id),
-        E: common_vendor.o(($event) => $options.goDrivers(order.id), order.id)
+        A: common_vendor.o(($event) => $options.goDetail(order.id), order.id),
+        B: common_vendor.o(($event) => $options.goDrivers(order.id), order.id)
       } : order.orderStatus === "IN_TRANSIT" ? {
-        G: common_vendor.o(($event) => $options.goTransitTrack(order.id), order.id),
-        H: common_vendor.o(($event) => $options.goDetail(order.id), order.id)
+        D: common_vendor.o(($event) => $options.goTransitTrack(order.id), order.id),
+        E: common_vendor.o(($event) => $options.goDetail(order.id), order.id)
       } : order.orderStatus === "PENDING_RECEIPT" ? {
-        J: common_vendor.o(($event) => $options.goDetail(order.id), order.id),
-        K: common_vendor.o(($event) => $options.confirmReceipt(order), order.id)
+        G: common_vendor.o(($event) => $options.goDetail(order.id), order.id),
+        H: common_vendor.o(($event) => $options.confirmReceipt(order), order.id)
       } : {
-        L: common_vendor.o(($event) => $options.goDetail(order.id), order.id)
+        I: common_vendor.o(($event) => $options.goDetail(order.id), order.id)
       }, {
-        z: order.orderStatus === "PENDING_CONTRACT",
-        C: order.orderStatus === "PENDING_PICKUP",
-        F: order.orderStatus === "IN_TRANSIT",
-        I: order.orderStatus === "PENDING_RECEIPT",
-        M: common_vendor.o(() => {
+        z: order.orderStatus === "PENDING_PICKUP",
+        C: order.orderStatus === "IN_TRANSIT",
+        F: order.orderStatus === "PENDING_RECEIPT",
+        J: common_vendor.o(() => {
         }, order.id),
-        N: order.id,
-        O: common_vendor.o(($event) => $options.goDetail(order.id), order.id)
+        K: order.id,
+        L: common_vendor.o(($event) => $options.goDetail(order.id), order.id)
       });
     }),
-    i: common_assets._imports_1$1
+    h: common_assets._imports_1$1
   } : {}, {
     d: !$data.loading && $data.orders.length === 0,
-    g: $data.isLoggedIn
+    f: $data.isLoggedIn,
+    i: common_vendor.sr("loginSheet", "622f94c0-1"),
+    j: common_vendor.o($options.handleLoginSuccess, "0a")
   });
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

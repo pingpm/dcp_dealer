@@ -198,6 +198,22 @@
 }
 .search-icon-glass {
   flex-shrink: 0;
+  position: relative;
+  width: 28rpx;
+  height: 28rpx;
+  border: 4rpx solid #a3a3a3;
+  border-radius: 50%;
+}
+.search-icon-glass::after {
+  content: '';
+  position: absolute;
+  right: -10rpx;
+  bottom: -7rpx;
+  width: 14rpx;
+  height: 4rpx;
+  border-radius: 999rpx;
+  background: #a3a3a3;
+  transform: rotate(45deg);
 }
 .keyword-input {
   flex: 1;

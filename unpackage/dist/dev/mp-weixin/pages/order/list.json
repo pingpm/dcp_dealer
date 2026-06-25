@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": "订单",
   "usingComponents": {
+    "miniapp-login-sheet": "../../components/miniapp-login-sheet/miniapp-login-sheet",
     "dealer-icon": "../../components/dealer-icon/dealer-icon"
   }
 }

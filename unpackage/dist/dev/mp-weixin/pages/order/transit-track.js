@@ -1,4 +1,5 @@
 "use strict";
+const utils_miniappLoginPage = require("../../utils/miniapp-login-page.js");
 const utils_api = require("../../utils/api.js");
 const utils_format = require("../../utils/format.js");
 const common_vendor = require("../../common/vendor.js");
@@ -44,6 +45,7 @@ function nearestIndex(points, target) {
   return result;
 }
 const _sfc_main = {
+  mixins: [utils_miniappLoginPage.miniappLoginPageMixin],
   data() {
     return {
       orderId: "",
@@ -198,6 +200,13 @@ const _sfc_main = {
       if (hours > 0)
         return `约${hours}小时${minutes ? `${minutes}分钟` : ""}`;
       return `约${minutes}分钟`;
+    },
+    summaryStatusText() {
+      const status = this.order.orderStatus;
+      return utils_format.orderStatusText[status] || "在途位置";
+    },
+    summaryStatusClass() {
+      return utils_format.statusClass(this.order.orderStatus);
     }
   },
   onLoad(options) {
@@ -284,6 +293,14 @@ const _sfc_main = {
     }
   }
 };
+if (!Array) {
+  const _easycom_miniapp_login_sheet2 = common_vendor.resolveComponent("miniapp-login-sheet");
+  _easycom_miniapp_login_sheet2();
+}
+const _easycom_miniapp_login_sheet = () => "../../components/miniapp-login-sheet/miniapp-login-sheet.js";
+if (!Math) {
+  _easycom_miniapp_login_sheet();
+}
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
     a: $data.pageReady
@@ -297,24 +314,26 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     h: common_vendor.t($data.order.carrierName || "承运商"),
     i: common_vendor.t($data.order.originCityName),
     j: common_vendor.t($data.order.destinationCityName),
-    k: common_vendor.t($options.timelineLocations.length),
-    l: common_vendor.t($options.routeDistanceText),
-    m: $options.routeDurationText
+    k: common_vendor.t($options.summaryStatusText),
+    l: common_vendor.n($options.summaryStatusClass),
+    m: common_vendor.t($options.timelineLocations.length),
+    n: common_vendor.t($options.routeDistanceText),
+    o: $options.routeDurationText
   }, $options.routeDurationText ? {
-    n: common_vendor.t($options.routeDurationText)
+    p: common_vendor.t($options.routeDurationText)
   } : {}, {
-    o: $options.canToggleRecords
+    q: $options.canToggleRecords
   }, $options.canToggleRecords ? {
-    p: common_vendor.t($data.recordsPanelOpen ? "收起" : "查看全部"),
-    q: common_vendor.o((...args) => $options.toggleRecordsPanel && $options.toggleRecordsPanel(...args), "a8")
+    r: common_vendor.t($data.recordsPanelOpen ? "收起" : "查看全部"),
+    s: common_vendor.o((...args) => $options.toggleRecordsPanel && $options.toggleRecordsPanel(...args), "38")
   } : {}, {
-    r: $data.routeError
+    t: $data.routeError
   }, $data.routeError ? {
-    s: common_vendor.t($data.routeError)
+    v: common_vendor.t($data.routeError)
   } : {}, {
-    t: $options.timelineLocations.length
+    w: $options.timelineLocations.length
   }, $options.timelineLocations.length ? {
-    v: common_vendor.f($options.visibleTimelineLocations, (loc, idx, i0) => {
+    x: common_vendor.f($options.visibleTimelineLocations, (loc, idx, i0) => {
       return common_vendor.e({
         a: common_vendor.t(idx + 1),
         b: idx === 0 ? 1 : "",
@@ -328,10 +347,13 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         h: idx
       });
     }),
-    w: $data.recordsPanelOpen ? 1 : ""
+    y: $data.recordsPanelOpen ? 1 : ""
   } : {}, {
-    x: $data.recordsPanelOpen ? 1 : ""
-  }) : {});
+    z: $data.recordsPanelOpen ? 1 : ""
+  }) : {
+    A: common_vendor.sr("loginSheet", "3afe98bf-0"),
+    B: common_vendor.o(_ctx.handleLoginSuccess, "0f")
+  });
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);
 wx.createPage(MiniProgramPage);

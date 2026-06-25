@@ -23,10 +23,15 @@
         <text class="label"><text class="required-star">*</text>企业全称</text>
         <input
           class="input"
+          :class="{ error: companyNameError }"
           v-model="form.companyName"
           placeholder="请输入营业执照上的企业名称"
           placeholder-style="color:#9ca3af"
+          @input="clearCompanyNameError"
+          @confirm="checkCompanyNameUsed"
+          @blur="checkCompanyNameUsed"
         />
+        <text v-if="companyNameError" class="field-error-text">{{ companyNameError }}</text>
       </view>
     </view>
 
@@ -93,6 +98,12 @@
         separator
         :example-src="exampleImages.dealerBusinessSite"
       />
+
+      <!-- #ifdef H5 -->
+      <button class="secondary-btn dev-upload-btn" :loading="devUploading" @click="useDevPhotos">
+        使用测试认证照片
+      </button>
+      <!-- #endif -->
     </view>
 
     <!-- Region Picker Component -->
@@ -101,6 +112,7 @@
       ref="addressMapPicker"
       title="选择详细地址"
       placeholder="搜索市场、园区、道路、公司名称"
+      :allow-manual-address="false"
       @select="onAddressSelect"
     />
 
@@ -108,16 +120,19 @@
     <view class="fixed-footer">
       <button class="primary-btn" :loading="submitting" @click="submit">提交并申请认证</button>
     </view>
+    <miniapp-login-sheet ref="loginSheet" @success="handleLoginSuccess" />
   </view>
 </template>
 
 <script>
+import { miniappLoginPageMixin } from '../../utils/miniapp-login-page.js';
 import { api, requireLogin } from '../../utils/api.js';
 import AddressMapPicker from '../../components/address-map-picker/address-map-picker.vue';
 import DealerImageUploader from '../../components/dealer-image-uploader/dealer-image-uploader.vue';
 import RegionPicker from '../../components/region-picker/region-picker.vue';
 
 export default {
+  mixins: [miniappLoginPageMixin],
   components: {
     AddressMapPicker,
     DealerImageUploader,
@@ -146,6 +161,10 @@ export default {
         dealerBusinessSite: '',
       },
       submitting: false,
+      devUploading: false,
+      companyNameError: '',
+      companyNameChecking: false,
+      companyNameCheckedValue: '',
     };
   },
   onLoad() {
@@ -173,6 +192,30 @@ export default {
     },
     enabledExampleUrl(item) {
       return item?.enabled && item?.url ? item.url : '';
+    },
+    clearCompanyNameError() {
+      this.companyNameError = '';
+      this.companyNameCheckedValue = '';
+    },
+    async checkCompanyNameUsed() {
+      const companyName = this.form.companyName.trim();
+      if (!companyName || this.companyNameChecking) return false;
+      if (this.companyNameCheckedValue === companyName) return Boolean(this.companyNameError);
+      this.companyNameChecking = true;
+      try {
+        const result = await api.verificationCompanyNameCheck({ companyName });
+        this.companyNameCheckedValue = companyName;
+        if (result.companyNameUsed) {
+          this.companyNameError = '该企业已入驻，请核对企业名称或更换后重试';
+          return true;
+        }
+        this.companyNameError = '';
+        return false;
+      } catch (error) {
+        return false;
+      } finally {
+        this.companyNameChecking = false;
+      }
     },
     async loadDetail() {
       try {
@@ -219,8 +262,8 @@ export default {
       this.form.districtName = '';
       this.form.addressPoiName = '';
       this.form.addressDetail = '';
-      this.form.longitude = '';
-      this.form.latitude = '';
+      this.form.longitude = region.longitude || '';
+      this.form.latitude = region.latitude || '';
     },
     openAddressPicker() {
       if (!this.form.cityId) {
@@ -235,6 +278,8 @@ export default {
         cityName: this.form.cityName || '',
         lng: this.form.longitude || '',
         lat: this.form.latitude || '',
+        defaultLng: this.form.longitude || '',
+        defaultLat: this.form.latitude || '',
         districtName: this.form.districtName || '',
         districtId: this.form.districtId || '',
       });
@@ -248,22 +293,40 @@ export default {
       this.form.districtName = address.districtName || this.form.districtName;
       this.form.districtId = address.districtId || this.form.districtId;
     },
+    async useDevPhotos() {
+      if (this.devUploading) return;
+      this.devUploading = true;
+      try {
+        const [licenseFile, siteFile] = await Promise.all([
+          api.importDevTestFile('test/dealer/dealer_company_licensepng.png', 'IMAGE'),
+          api.importDevTestFile('test/dealer/dealer_office_photo1.png', 'IMAGE'),
+        ]);
+        this.licenseFiles = [{ fileId: licenseFile.fileId, fileUrl: licenseFile.fileUrl }];
+        this.siteFiles = [{ fileId: siteFile.fileId, fileUrl: siteFile.fileUrl }];
+      } finally {
+        this.devUploading = false;
+      }
+    },
     validate() {
-      const required = [
-        'contactName',
-        'companyName',
-        'provinceId',
-        'cityId',
-        'addressPoiName',
-        'addressDetail',
-        'longitude',
-        'latitude',
+      const requiredFields = [
+        ['contactName', '请填写联系人姓名'],
+        ['companyName', '请填写企业全称'],
+        ['provinceId', '请选择所在省市'],
+        ['cityId', '请选择所在省市'],
+        ['addressPoiName', '请在地图上选择详细地址'],
+        ['addressDetail', '请在地图上选择详细地址'],
+        ['longitude', '详细地址缺少定位信息，请重新在地图上选择'],
+        ['latitude', '详细地址缺少定位信息，请重新在地图上选择'],
       ];
-      for (const key of required) {
-        if (!this.form[key]) {
-          uni.showToast({ title: '请完整填写企业信息及经营地址', icon: 'none' });
+      for (const [key, message] of requiredFields) {
+        if (!String(this.form[key] || '').trim()) {
+          uni.showToast({ title: message, icon: 'none' });
           return false;
         }
+      }
+      if (this.companyNameError) {
+        uni.showToast({ title: this.companyNameError, icon: 'none' });
+        return false;
       }
       if (!this.licenseFiles.length) {
         uni.showToast({ title: '请上传营业执照照片', icon: 'none' });
@@ -277,6 +340,10 @@ export default {
     },
     async submit() {
       if (!this.validate()) return;
+      if (await this.checkCompanyNameUsed()) {
+        uni.showToast({ title: this.companyNameError, icon: 'none' });
+        return;
+      }
       this.submitting = true;
       try {
         const payload = {
@@ -287,6 +354,12 @@ export default {
         await api.submitVerification(payload);
         uni.showToast({ title: '认证材料提交成功', icon: 'success' });
         setTimeout(() => uni.redirectTo({ url: '/pages/verification/status' }), 600);
+      } catch (error) {
+        const message = error?.message || '';
+        if (message.includes('企业') && message.includes('入驻')) {
+          this.companyNameError = message;
+          this.companyNameCheckedValue = this.form.companyName.trim();
+        }
       } finally {
         this.submitting = false;
       }
@@ -388,6 +461,25 @@ export default {
   color: #6b7280;
   font-size: 23rpx;
   line-height: 1.45;
+}
+
+.input.error {
+  border: 1rpx solid #ef4444;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.field-error-text {
+  display: block;
+  margin-top: 10rpx;
+  color: #dc2626;
+  font-size: 22rpx;
+  line-height: 1.35;
+}
+
+.dev-upload-btn {
+  width: 100%;
+  margin-top: 26rpx;
 }
 
 </style>

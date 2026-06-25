@@ -3,7 +3,7 @@
     <!-- Status Header Banner -->
     <view class="status-banner-card" :class="status.reviewStatus.toLowerCase()">
       <view class="status-icon-wrap">
-        <dealer-icon :name="statusIconName" size="lg" :color="statusIconColor" />
+        <image class="status-icon-image" :src="statusIconSrc" mode="aspectFit" />
       </view>
       <view class="status-banner-meta">
         <view class="status-title-text">{{ reviewStatusText[status.reviewStatus] || '-' }}</view>
@@ -103,7 +103,7 @@
           <text class="step-num">02</text>
           <view class="step-meta">
             <text class="step-title">担保交易服务</text>
-            <text class="step-desc">支持平台担保交易、模拟合同确认和提送车跟踪。</text>
+            <text class="step-desc">支持平台担保交易、订单确认和提送车跟踪。</text>
           </view>
         </view>
       </view>
@@ -121,14 +121,17 @@
         {{ status.reviewStatus === 'REJECTED' ? '重新提交认证信息' : '立即去认证' }}
       </button>
     </view>
+    <miniapp-login-sheet ref="loginSheet" @success="handleLoginSuccess" />
   </view>
 </template>
 
 <script>
+import { miniappLoginPageMixin } from '../../utils/miniapp-login-page.js';
 import { api, requireLogin } from '../../utils/api.js';
 import { dateText, reviewStatusText, statusClass } from '../../utils/format.js';
 
 export default {
+  mixins: [miniappLoginPageMixin],
   data() {
     return {
       status: {
@@ -139,27 +142,20 @@ export default {
     };
   },
   computed: {
-    statusIconName() {
-      const map = {
-        APPROVED: 'circle-check',
-        PENDING: 'hourglass',
-        REJECTED: 'triangle-alert',
-      };
-      return map[this.status.reviewStatus] || 'user-round';
-    },
-    statusIconColor() {
-      const map = {
-        APPROVED: '#16a34a',
-        PENDING: '#d97706',
-        REJECTED: '#dc2626',
-      };
-      return map[this.status.reviewStatus] || '#64748b';
-    },
     licenseFiles() {
       return (this.status.mediaFiles || []).filter((f) => f.usageScene === 'BUSINESS_LICENSE');
     },
     siteFiles() {
       return (this.status.mediaFiles || []).filter((f) => f.usageScene === 'BUSINESS_SITE');
+    },
+    statusIconSrc() {
+      const map = {
+        APPROVED: '/static/status-icons/approved.png',
+        PENDING: '/static/status-icons/pending.png',
+        REJECTED: '/static/status-icons/rejected.png',
+        UNVERIFIED: '/static/status-icons/unverified.png',
+      };
+      return map[this.status.reviewStatus] || map.UNVERIFIED;
     },
   },
   onShow() {
@@ -204,6 +200,8 @@ export default {
 <style>
 .status-page {
   padding: 30rpx;
+  padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(180rpx + constant(safe-area-inset-bottom));
 }
 
 .status-banner-card {
@@ -219,6 +217,7 @@ export default {
 }
 
 .status-icon-wrap {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -226,6 +225,12 @@ export default {
   height: 90rpx;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.status-icon-image {
+  width: 54rpx;
+  height: 54rpx;
+  display: block;
 }
 
 .status-banner-meta {

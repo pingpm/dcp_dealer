@@ -17,7 +17,7 @@
             >{{ order.originCityName }} → {{ order.destinationCityName }}</text
           >
         </view>
-        <view class="summary-status">运输中</view>
+        <view class="summary-status" :class="summaryStatusClass">{{ summaryStatusText }}</view>
       </view>
 
       <view class="transit-sheet" :class="{ expanded: recordsPanelOpen }">
@@ -79,12 +79,14 @@
   </view>
   <view class="page transit-track-page loading-page" v-else>
     <view class="section empty-location">正在加载在途位置...</view>
+    <miniapp-login-sheet ref="loginSheet" @success="handleLoginSuccess" />
   </view>
 </template>
 
 <script>
+import { miniappLoginPageMixin } from '../../utils/miniapp-login-page.js';
 import { api, requireLogin } from '../../utils/api.js';
-import { dateText } from '../../utils/format.js';
+import { dateText, orderStatusText, statusClass } from '../../utils/format.js';
 
 const TRAVELED_COLOR = '#f97316';
 const REMAINING_COLOR = '#3b82f6';
@@ -133,6 +135,7 @@ function nearestIndex(points, target) {
 }
 
 export default {
+  mixins: [miniappLoginPageMixin],
   data() {
     return {
       orderId: '',
@@ -286,6 +289,13 @@ export default {
       const minutes = Math.round((this.routeDurationSecond % 3600) / 60);
       if (hours > 0) return `约${hours}小时${minutes ? `${minutes}分钟` : ''}`;
       return `约${minutes}分钟`;
+    },
+    summaryStatusText() {
+      const status = this.order.orderStatus;
+      return orderStatusText[status] || '在途位置';
+    },
+    summaryStatusClass() {
+      return statusClass(this.order.orderStatus);
     },
   },
   onLoad(options) {
@@ -444,6 +454,26 @@ export default {
   color: #2563eb;
   font-size: 24rpx;
   font-weight: 800;
+}
+
+.summary-status.status-success {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.summary-status.status-warning {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.summary-status.status-info {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.summary-status.status-danger {
+  background: #fef2f2;
+  color: #dc2626;
 }
 
 .transit-sheet {

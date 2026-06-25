@@ -1,7 +1,9 @@
 "use strict";
+const utils_miniappLoginPage = require("../../utils/miniapp-login-page.js");
 const utils_api = require("../../utils/api.js");
 const common_vendor = require("../../common/vendor.js");
 const _sfc_main = {
+  mixins: [utils_miniappLoginPage.miniappLoginPageMixin],
   data() {
     return {
       orderId: "",
@@ -31,6 +33,14 @@ const _sfc_main = {
     }
   }
 };
+if (!Array) {
+  const _easycom_miniapp_login_sheet2 = common_vendor.resolveComponent("miniapp-login-sheet");
+  _easycom_miniapp_login_sheet2();
+}
+const _easycom_miniapp_login_sheet = () => "../../components/miniapp-login-sheet/miniapp-login-sheet.js";
+if (!Math) {
+  _easycom_miniapp_login_sheet();
+}
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
     a: common_vendor.t($data.order.originCityName || "-"),
@@ -51,7 +61,10 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     m: common_vendor.t($options.deliveryDriver.idNumber || "-")
   } : {}, {
     n: $data.pageReady && !$options.pickupDriver && !$options.deliveryDriver
-  }, $data.pageReady && !$options.pickupDriver && !$options.deliveryDriver ? {} : {});
+  }, $data.pageReady && !$options.pickupDriver && !$options.deliveryDriver ? {} : {}, {
+    o: common_vendor.sr("loginSheet", "4b6dc0b9-0"),
+    p: common_vendor.o(_ctx.handleLoginSuccess, "d2")
+  });
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);
 wx.createPage(MiniProgramPage);

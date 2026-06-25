@@ -1,6 +1,8 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
+const utils_miniappLoginPage = require("../../utils/miniapp-login-page.js");
 const utils_api = require("../../utils/api.js");
+const utils_orderEditNavigation = require("../../utils/order-edit-navigation.js");
 const DealerOrderForm = () => "../../components/dealer-order-form/dealer-order-form.js";
 function routeFromOrder(order, prefix) {
   return {
@@ -19,6 +21,7 @@ function routeFromOrder(order, prefix) {
 function seedFromOrder(order, vehicles) {
   return {
     orderAmountYuan: ((order.orderAmountCent || 0) / 100).toFixed(2),
+    insuranceMaxAmountYuan: order.insuranceMaxAmountCent === null || order.insuranceMaxAmountCent === void 0 ? "" : (Number(order.insuranceMaxAmountCent) / 100).toFixed(2),
     agreedDate: order.agreedDeliveryTime ? order.agreedDeliveryTime.slice(0, 10) : "",
     form: {
       transportMode: order.transportMode || "LARGE_TRUCK",
@@ -34,6 +37,8 @@ function seedFromOrder(order, vehicles) {
       sender: { name: order.senderName || "", phone: order.senderPhone || "" },
       receiver: { name: order.receiverName || "", phone: order.receiverPhone || "" },
       hasInvoice: Boolean(order.hasInvoice),
+      hasInsurance: Boolean(order.hasInsurance),
+      insuranceRemark: order.insuranceRemark || "",
       vehicles: vehicles.map((vehicle) => ({
         brandId: vehicle.brandId || "",
         brandName: vehicle.brandName || "",
@@ -50,6 +55,7 @@ function seedFromOrder(order, vehicles) {
   };
 }
 const _sfc_main = {
+  mixins: [utils_miniappLoginPage.miniappLoginPageMixin],
   components: { DealerOrderForm },
   data() {
     return {
@@ -98,24 +104,26 @@ const _sfc_main = {
         await utils_api.api.updateOrder(this.orderId, form.buildPayload());
         common_vendor.index.showToast({ title: "修改成功", icon: "success" });
         setTimeout(() => {
-          common_vendor.index.redirectTo({ url: `/pages/order/detail?orderId=${this.orderId}` });
+          utils_orderEditNavigation.returnToOrderDetail({ orderId: this.orderId, shouldRefresh: true, uniApi: common_vendor.index });
         }, 500);
       } finally {
         this.submitting = false;
       }
     },
     back() {
-      common_vendor.index.redirectTo({ url: `/pages/order/detail?orderId=${this.orderId}` });
+      utils_orderEditNavigation.returnToOrderDetail({ orderId: this.orderId, uniApi: common_vendor.index });
     }
   }
 };
 if (!Array) {
   const _easycom_dealer_order_form2 = common_vendor.resolveComponent("dealer-order-form");
-  _easycom_dealer_order_form2();
+  const _easycom_miniapp_login_sheet2 = common_vendor.resolveComponent("miniapp-login-sheet");
+  (_easycom_dealer_order_form2 + _easycom_miniapp_login_sheet2)();
 }
 const _easycom_dealer_order_form = () => "../../components/dealer-order-form/dealer-order-form.js";
+const _easycom_miniapp_login_sheet = () => "../../components/miniapp-login-sheet/miniapp-login-sheet.js";
 if (!Math) {
-  _easycom_dealer_order_form();
+  (_easycom_dealer_order_form + _easycom_miniapp_login_sheet)();
 }
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
@@ -130,7 +138,9 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   }, {
     e: common_vendor.o((...args) => $options.back && $options.back(...args), "a1"),
     f: $data.submitting,
-    g: common_vendor.o((...args) => $options.save && $options.save(...args), "3f")
+    g: common_vendor.o((...args) => $options.save && $options.save(...args), "3f"),
+    h: common_vendor.sr("loginSheet", "439f45e8-1"),
+    i: common_vendor.o(_ctx.handleLoginSuccess, "f2")
   });
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

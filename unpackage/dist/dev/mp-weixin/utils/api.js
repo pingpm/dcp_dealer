@@ -3,6 +3,7 @@ const common_vendor = require("../common/vendor.js");
 const config_api = require("../config/api.js");
 const TOKEN_KEY = "dealer_token";
 const PROFILE_KEY = "dealer_profile";
+const MINIAPP_LOGIN_PROMPT_KEY = "dealer_miniapp_login_prompt";
 function getToken() {
   return common_vendor.index.getStorageSync(TOKEN_KEY) || "";
 }
@@ -17,9 +18,22 @@ function clearSession() {
 function getSession() {
   return common_vendor.index.getStorageSync(PROFILE_KEY) || null;
 }
-function requireLogin() {
+function openLoginPrompt(payload = {}) {
+  const data = typeof payload === "string" ? { actionText: payload } : payload;
+  common_vendor.index.setStorageSync(MINIAPP_LOGIN_PROMPT_KEY, data || {});
+  common_vendor.index.$emit("open-miniapp-login-sheet", data);
+  return true;
+}
+function consumePendingLoginPrompt() {
+  const payload = common_vendor.index.getStorageSync(MINIAPP_LOGIN_PROMPT_KEY) || null;
+  if (payload) {
+    common_vendor.index.removeStorageSync(MINIAPP_LOGIN_PROMPT_KEY);
+  }
+  return payload;
+}
+function requireLogin(payload = {}) {
   if (!getToken()) {
-    common_vendor.index.reLaunch({ url: "/pages/auth/login" });
+    openLoginPrompt(payload);
     return false;
   }
   return true;
@@ -41,14 +55,14 @@ function request(options) {
       success(res) {
         const body = res.data || {};
         if (res.statusCode >= 200 && res.statusCode < 300 && body.success) {
-          resolve(body.data);
+          resolve(normalizeFileUrls(body.data));
           return;
         }
         const message = body.message || "请求失败";
         if (res.statusCode === 401) {
           clearSession();
           if (options.authRedirect !== false) {
-            common_vendor.index.reLaunch({ url: "/pages/auth/login" });
+            openLoginPrompt({ actionText: "重新登录" });
           }
         }
         if (!options.silent) {
@@ -83,7 +97,7 @@ function uploadFile(filePath, fileType, usageScene = "") {
           return;
         }
         if (res.statusCode >= 200 && res.statusCode < 300 && body.success) {
-          resolve(body.data);
+          resolve(normalizeFileUrls(body.data));
           return;
         }
         const message = body.message || "上传失败";
@@ -96,6 +110,40 @@ function uploadFile(filePath, fileType, usageScene = "") {
       }
     });
   });
+}
+function resolveFileUrl(fileUrl) {
+  if (!fileUrl || typeof fileUrl !== "string")
+    return fileUrl || "";
+  if (/^(https?:|data:|blob:|file:|wxfile:)/i.test(fileUrl))
+    return fileUrl;
+  if (!fileUrl.startsWith("/uploads/"))
+    return fileUrl;
+  const origin = fileServiceOrigin();
+  return origin ? `${origin}${fileUrl}` : fileUrl;
+}
+function fileServiceOrigin() {
+  var _a;
+  const baseUrl = config_api.API_BASE_URL.replace(/\/+$/, "");
+  const match = baseUrl.match(/^(https?:\/\/[^/]+)/i);
+  if (match)
+    return match[1];
+  if (typeof window !== "undefined" && ((_a = window.location) == null ? void 0 : _a.origin)) {
+    return window.location.origin;
+  }
+  return "";
+}
+function normalizeFileUrls(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeFileUrls(item));
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+  return Object.keys(value).reduce((next, key) => {
+    const item = value[key];
+    next[key] = key === "fileUrl" ? resolveFileUrl(item) : normalizeFileUrls(item);
+    return next;
+  }, {});
 }
 const api = {
   exampleImageConfigs() {
@@ -137,6 +185,17 @@ const api = {
       }
     });
   },
+  wechatPhoneLogin(phoneCode, wxCode) {
+    return request({
+      url: "/auth/miniapp/wechat-phone-login",
+      method: "POST",
+      data: {
+        appType: "DEALER_MINIAPP",
+        phoneCode,
+        wxCode
+      }
+    });
+  },
   bindWechatOpenid(wxCode) {
     return request({
       url: "/auth/miniapp/wechat-openid",
@@ -155,6 +214,13 @@ const api = {
   },
   verificationDetail() {
     return request({ url: "/dealer/verification" });
+  },
+  verificationCompanyNameCheck(params = {}) {
+    const query = toQuery(params);
+    return request({
+      url: `/dealer/verification/company-name-check${query ? `?${query}` : ""}`,
+      silent: true
+    });
   },
   submitVerification(data) {
     return request({ url: "/dealer/verification", method: "POST", data });
@@ -192,11 +258,24 @@ const api = {
   searchCarriers(params) {
     return request({ url: `/dealer/carrier-search?${toQuery(params)}` });
   },
+  carrierPublicProfile(carrierId) {
+    return request({ url: `/dealer/carriers/${carrierId}/profile` });
+  },
   revealCarrierPhone(data) {
     return request({ url: "/dealer/contact/carrier-phone", method: "POST", data });
   },
+  importDevTestFile(relativePath, fileType = "IMAGE") {
+    return request({
+      url: "/dev/test-files/import",
+      method: "POST",
+      data: { relativePath, fileType }
+    });
+  },
   platformGuaranteeService() {
     return request({ url: "/dealer/value-added-services/platform-guarantee" });
+  },
+  guaranteeServiceAgreement(options = {}) {
+    return request({ url: "/agreements/guarantee-service", authRedirect: false, ...options });
   },
   createOrder(data) {
     return request({ url: "/orders", method: "POST", data });
@@ -207,14 +286,14 @@ const api = {
   async createGuaranteePayment(orderId) {
     return request({ url: `/orders/${orderId}/guarantee-payment`, method: "POST" });
   },
-  payment(paymentId) {
-    return request({ url: `/payments/${paymentId}` });
+  payment(paymentId, options = {}) {
+    return request({ url: `/payments/${paymentId}`, ...options });
   },
-  syncWechatPayment(paymentId) {
+  syncWechatPayment(paymentId, options = {}) {
     if (!paymentId) {
       return Promise.resolve({ synced: false, mock: true });
     }
-    return request({ url: `/payments/${paymentId}/wechat-sync`, method: "POST" });
+    return request({ url: `/payments/${paymentId}/wechat-sync`, method: "POST", ...options });
   },
   orders(params = {}, options = {}) {
     const query = toQuery(params);
@@ -225,12 +304,6 @@ const api = {
   },
   confirmReceipt(orderId) {
     return request({ url: `/orders/${orderId}/receipt-confirm`, method: "POST" });
-  },
-  contract(orderId) {
-    return request({ url: `/orders/${orderId}/contract` });
-  },
-  confirmContract(orderId) {
-    return request({ url: `/orders/${orderId}/contract/confirm`, method: "POST" });
   },
   cancelOrder(orderId, cancelReason) {
     return request({
@@ -324,6 +397,7 @@ function decodeQuery(options = {}) {
 }
 exports.api = api;
 exports.clearSession = clearSession;
+exports.consumePendingLoginPrompt = consumePendingLoginPrompt;
 exports.decodeQuery = decodeQuery;
 exports.getSession = getSession;
 exports.getToken = getToken;

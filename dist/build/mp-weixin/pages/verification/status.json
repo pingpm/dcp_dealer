@@ -1,6 +1,6 @@
 {
   "navigationBarTitleText": "认证状态",
   "usingComponents": {
-    "dealer-icon": "../../components/dealer-icon/dealer-icon"
+    "miniapp-login-sheet": "../../components/miniapp-login-sheet/miniapp-login-sheet"
   }
 }

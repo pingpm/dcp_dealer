@@ -134,6 +134,12 @@
   font-weight: 800;
   color: var(--text-main);
 }
+.service-date-text {
+  display: block;
+  margin-top: 4rpx;
+  color: var(--text-main);
+  font-weight: 700;
+}
 .payment-methods-block {
   margin-bottom: 24rpx;
 }
@@ -171,6 +177,11 @@
   margin-bottom: 24rpx;
   color: var(--text-muted);
   font-size: 24rpx;
+  flex-wrap: wrap;
+}
+.agreement-link {
+  color: var(--primary-color);
+  font-weight: 700;
 }
 .custom-check-box {
   width: 34rpx;

@@ -37,6 +37,16 @@
         <button class="address-search-btn" :loading="searching" @click="searchAddress">搜索</button>
       </view>
 
+      <view v-if="allowManualAddress" class="manual-address-box">
+        <view class="manual-address-label">未搜索到地址时可手动填写</view>
+        <input
+          class="manual-address-input"
+          v-model="manualAddress"
+          placeholder="请输入经营场地详细地址"
+          placeholder-style="color:#9ca3af"
+        />
+      </view>
+
       <map
         class="address-map"
         :latitude="mapState.latitude"
@@ -69,6 +79,10 @@ export default {
       type: String,
       default: '搜索园区、道路、公司名称',
     },
+    allowManualAddress: {
+      type: Boolean,
+      default: true,
+    },
   },
   data() {
     return {
@@ -76,6 +90,7 @@ export default {
       provinceName: '',
       cityName: '',
       keyword: '',
+      manualAddress: '',
       searching: false,
       results: [],
       showSuggestions: false,
@@ -122,6 +137,7 @@ export default {
       this.provinceName = options.provinceName || '';
       this.cityName = options.cityName || '';
       this.keyword = options.keyword || options.name || options.address || '';
+      this.manualAddress = options.address || '';
       this.results = [];
       this.showSuggestions = false;
       this.selectedAddress = {
@@ -136,6 +152,9 @@ export default {
         districtName: options.districtName || '',
         districtId: options.districtId || '',
       };
+      if (options.defaultLng && options.defaultLat && !this.selectedAddress.lng) {
+        this.setMapPoint({ lng: options.defaultLng, lat: options.defaultLat, scale: 12 });
+      }
       this.visible = true;
       if (this.searchTimer) {
         clearTimeout(this.searchTimer);
@@ -244,6 +263,7 @@ export default {
     selectAddressResult(item) {
       this.selectedAddress = { ...item };
       this.keyword = item.name;
+      this.manualAddress = item.address || item.name || '';
       this.showSuggestions = false;
       this.setMapPoint({ lng: item.lng, lat: item.lat, scale: 16 });
     },
@@ -262,11 +282,28 @@ export default {
     },
     confirm() {
       const name = (this.selectedAddress.name || '').trim();
-      if (!name) {
+      const manualAddress = (this.manualAddress || '').trim();
+      if (!name && (!this.allowManualAddress || !manualAddress)) {
         uni.showToast({ title: '请选择详细地址', icon: 'none' });
         return;
       }
-      this.$emit('select', { ...this.selectedAddress });
+      if (this.allowManualAddress && !name && manualAddress) {
+        this.$emit('select', {
+          ...this.emptyAddress(),
+          name: manualAddress,
+          address: manualAddress,
+          provinceName: this.provinceName,
+          cityName: this.cityName,
+          lng: this.mapState.longitude || '',
+          lat: this.mapState.latitude || '',
+        });
+        this.close();
+        return;
+      }
+      this.$emit('select', {
+        ...this.selectedAddress,
+        address: this.selectedAddress.address || manualAddress,
+      });
       this.close();
     },
   },
@@ -338,7 +375,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  margin-bottom: 18rpx;
+  margin-bottom: 16rpx;
 }
 
 .address-search-box {
@@ -392,6 +429,28 @@ export default {
   color: #ffffff;
   font-size: 25rpx;
   line-height: 72rpx;
+}
+
+.manual-address-box {
+  margin-bottom: 18rpx;
+}
+
+.manual-address-label {
+  margin-bottom: 8rpx;
+  color: #6b7280;
+  font-size: 22rpx;
+}
+
+.manual-address-input {
+  width: 100%;
+  height: 72rpx;
+  padding: 0 22rpx;
+  border: 1rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  background: #ffffff;
+  color: #111827;
+  font-size: 26rpx;
+  box-sizing: border-box;
 }
 
 .address-map {

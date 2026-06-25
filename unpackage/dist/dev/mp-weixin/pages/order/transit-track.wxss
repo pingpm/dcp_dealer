@@ -60,6 +60,22 @@
   font-size: 24rpx;
   font-weight: 800;
 }
+.summary-status.status-success {
+  background: #ecfdf5;
+  color: #059669;
+}
+.summary-status.status-warning {
+  background: #fffbeb;
+  color: #d97706;
+}
+.summary-status.status-info {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.summary-status.status-danger {
+  background: #fef2f2;
+  color: #dc2626;
+}
 .transit-sheet {
   position: absolute;
   left: 0;

@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "在途位置",
-  "usingComponents": {}
+  "usingComponents": {
+    "miniapp-login-sheet": "../../components/miniapp-login-sheet/miniapp-login-sheet"
+  }
 }

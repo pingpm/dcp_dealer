@@ -3,6 +3,7 @@
   "usingComponents": {
     "address-map-picker": "../../components/address-map-picker/address-map-picker",
     "dealer-image-uploader": "../../components/dealer-image-uploader/dealer-image-uploader",
-    "region-picker": "../../components/region-picker/region-picker"
+    "region-picker": "../../components/region-picker/region-picker",
+    "miniapp-login-sheet": "../../components/miniapp-login-sheet/miniapp-login-sheet"
   }
 }

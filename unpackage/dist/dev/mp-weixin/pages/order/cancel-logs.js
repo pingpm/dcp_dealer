@@ -1,8 +1,10 @@
 "use strict";
+const utils_miniappLoginPage = require("../../utils/miniapp-login-page.js");
 const utils_api = require("../../utils/api.js");
 const utils_format = require("../../utils/format.js");
 const common_vendor = require("../../common/vendor.js");
 const _sfc_main = {
+  mixins: [utils_miniappLoginPage.miniappLoginPageMixin],
   data() {
     return {
       orderId: "",
@@ -48,6 +50,14 @@ const _sfc_main = {
     }
   }
 };
+if (!Array) {
+  const _easycom_miniapp_login_sheet2 = common_vendor.resolveComponent("miniapp-login-sheet");
+  _easycom_miniapp_login_sheet2();
+}
+const _easycom_miniapp_login_sheet = () => "../../components/miniapp-login-sheet/miniapp-login-sheet.js";
+if (!Math) {
+  _easycom_miniapp_login_sheet();
+}
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
     a: $data.logs.length === 0
@@ -75,6 +85,9 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         l: log.id
       });
     })
+  }, {
+    c: common_vendor.sr("loginSheet", "ff65abe0-0"),
+    d: common_vendor.o(_ctx.handleLoginSuccess, "8a")
   });
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

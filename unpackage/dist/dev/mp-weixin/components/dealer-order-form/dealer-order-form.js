@@ -47,11 +47,19 @@ function blankForm() {
     sender: { name: "", phone: "" },
     receiver: { name: "", phone: "" },
     vehicles: [blankVehicle()],
-    hasInvoice: false
+    hasInvoice: false,
+    hasInsurance: false,
+    insuranceRemark: ""
   };
 }
 function clone(value) {
   return JSON.parse(JSON.stringify(value || {}));
+}
+function formatDateForPicker(date = /* @__PURE__ */ new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 const _sfc_main = {
   components: { AddressMapPicker, RegionPicker },
@@ -71,10 +79,12 @@ const _sfc_main = {
       routeCityTarget: "origin",
       routeAddressTarget: "origin",
       orderAmountYuan: "",
+      insuranceMaxAmountYuan: "",
       agreedDate: "",
       transportModes: [
         { label: "大板托运", value: "LARGE_TRUCK" },
-        { label: "小板托运", value: "SMALL_TRUCK" }
+        { label: "小板托运", value: "SMALL_TRUCK" },
+        { label: "代驾", value: "DRIVING" }
       ],
       vehiclePickerIndex: -1,
       vehiclePickerStep: "brand",
@@ -123,6 +133,9 @@ const _sfc_main = {
     },
     customerSubjectTypeText() {
       return this.form.customerSubject.subjectType === "PERSONAL" ? "个人" : "企业";
+    },
+    todayDate() {
+      return formatDateForPicker();
     }
   },
   watch: {
@@ -165,6 +178,7 @@ const _sfc_main = {
         vehicles
       };
       this.orderAmountYuan = seed.orderAmountYuan || "";
+      this.insuranceMaxAmountYuan = seed.insuranceMaxAmountYuan || "";
       this.agreedDate = seed.agreedDate || "";
     },
     openDrawer(type) {
@@ -172,6 +186,64 @@ const _sfc_main = {
     },
     closeDrawer() {
       this.activeDrawer = "";
+    },
+    confirmContactDrawer(role) {
+      const contact = this.form[role];
+      if (!contact)
+        return;
+      const roleText = role === "sender" ? "发车人" : "收车人";
+      contact.name = (contact.name || "").trim();
+      contact.phone = (contact.phone || "").trim();
+      if (!contact.name) {
+        common_vendor.index.showToast({ title: `请填写${roleText}姓名`, icon: "none" });
+        return;
+      }
+      if (!contact.phone) {
+        common_vendor.index.showToast({ title: `请填写${roleText}手机号`, icon: "none" });
+        return;
+      }
+      this.closeDrawer();
+    },
+    normalizeVehicle(vehicle) {
+      if (!vehicle)
+        return;
+      vehicle.vin = (vehicle.vin || "").trim();
+      vehicle.plateNo = (vehicle.plateNo || "").trim();
+      vehicle.valuationTenThousandYuan = String(vehicle.valuationTenThousandYuan ?? "").trim();
+    },
+    validateVehicles() {
+      if (this.form.vehicles.length === 0) {
+        common_vendor.index.showToast({ title: "请添加车辆信息", icon: "none" });
+        return false;
+      }
+      for (const vehicle of this.form.vehicles) {
+        this.normalizeVehicle(vehicle);
+      }
+      const invalidVehicle = this.form.vehicles.find(
+        (vehicle) => !vehicle.brandName || !vehicle.seriesName || !vehicle.modelName
+      );
+      if (invalidVehicle) {
+        common_vendor.index.showToast({ title: "请完整选择车辆车型", icon: "none" });
+        return false;
+      }
+      if (this.form.vehicles.find((vehicle) => !vehicle.vin && !vehicle.plateNo)) {
+        common_vendor.index.showToast({ title: "车架号和车牌号至少填一个", icon: "none" });
+        return false;
+      }
+      if (this.form.vehicles.find((vehicle) => String(vehicle.vin || "").length > 17)) {
+        common_vendor.index.showToast({ title: "车架号最多输入17位", icon: "none" });
+        return false;
+      }
+      if (this.form.vehicles.find((vehicle) => vehicle.valuationTenThousandYuan === "")) {
+        common_vendor.index.showToast({ title: "请填写车辆估值", icon: "none" });
+        return false;
+      }
+      return true;
+    },
+    confirmVehicleDrawer() {
+      if (!this.validateVehicles())
+        return;
+      this.closeDrawer();
     },
     routeText(route, placeholder) {
       return [route.provinceName, route.cityName].filter(Boolean).join(" ") || placeholder;
@@ -228,7 +300,15 @@ const _sfc_main = {
       this.form.transportMode = this.transportModes[event.detail.value].value;
     },
     changeDeliveryDate(event) {
-      this.agreedDate = event.detail.value;
+      const selectedDate = event.detail.value;
+      if (selectedDate && selectedDate < this.todayDate) {
+        common_vendor.index.showToast({ title: "约定送达时间不能早于今天", icon: "none" });
+        return;
+      }
+      this.agreedDate = selectedDate;
+    },
+    getAgreedDeliveryDateText() {
+      return this.agreedDate || "";
     },
     addVehicle() {
       this.form.vehicles.push(blankVehicle());
@@ -256,7 +336,7 @@ const _sfc_main = {
       await this.loadVehicleBrands();
     },
     closeVehiclePicker() {
-      this.activeDrawer = "";
+      this.activeDrawer = "vehicle";
     },
     copyCustomerTo(role) {
       if (!this.form.customerSubject.subjectName) {
@@ -297,6 +377,35 @@ const _sfc_main = {
       } finally {
         this.vehiclePickerLoading = false;
       }
+    },
+    async switchVehiclePickerStep(step) {
+      this.clearVehicleSearch();
+      if (step === "brand") {
+        this.vehiclePickerStep = "brand";
+        await this.loadVehicleBrands();
+        return;
+      }
+      if (step === "series") {
+        if (!this.pendingVehicleSelection.brandId) {
+          common_vendor.index.showToast({ title: "请先选择品牌", icon: "none" });
+          return;
+        }
+        this.pendingVehicleSelection.seriesId = "";
+        this.pendingVehicleSelection.seriesName = "";
+        this.pendingVehicleSelection.modelId = "";
+        this.pendingVehicleSelection.modelName = "";
+        this.vehiclePickerStep = "series";
+        await this.loadVehicleSeries(this.pendingVehicleSelection.brandId);
+        return;
+      }
+      if (!this.pendingVehicleSelection.seriesId) {
+        common_vendor.index.showToast({ title: "请先选择车系", icon: "none" });
+        return;
+      }
+      this.pendingVehicleSelection.modelId = "";
+      this.pendingVehicleSelection.modelName = "";
+      this.vehiclePickerStep = "model";
+      await this.loadVehicleModels(this.pendingVehicleSelection.seriesId);
     },
     vehiclePickerItemKey(item) {
       return item.id || item.brandName || item.seriesName || item.modelName;
@@ -394,12 +503,12 @@ const _sfc_main = {
         common_vendor.index.showToast({ title: "请选择目的城市", icon: "none" });
         return false;
       }
-      if (this.form.hasPickupService && !this.form.origin.addressDetail) {
-        common_vendor.index.showToast({ title: "请填写提车地址", icon: "none" });
+      if (this.form.hasPickupService && (!this.form.origin.addressDetail || !this.form.origin.longitude || !this.form.origin.latitude)) {
+        common_vendor.index.showToast({ title: "请选择提车位置", icon: "none" });
         return false;
       }
-      if (this.form.hasDeliveryService && !this.form.destination.addressDetail) {
-        common_vendor.index.showToast({ title: "请填写送车地址", icon: "none" });
+      if (this.form.hasDeliveryService && (!this.form.destination.addressDetail || !this.form.destination.longitude || !this.form.destination.latitude)) {
+        common_vendor.index.showToast({ title: "请选择送车位置", icon: "none" });
         return false;
       }
       if (!this.form.sender.name || !this.form.sender.phone) {
@@ -410,32 +519,38 @@ const _sfc_main = {
         common_vendor.index.showToast({ title: "请填写收车人信息", icon: "none" });
         return false;
       }
-      const invalidVehicle = this.form.vehicles.find(
-        (vehicle) => !vehicle.brandName || !vehicle.seriesName || !vehicle.modelName
-      );
-      if (this.form.vehicles.length === 0 || invalidVehicle) {
-        common_vendor.index.showToast({ title: "请完整选择车辆车型", icon: "none" });
+      if (!this.validateVehicles())
         return false;
-      }
-      if (this.form.vehicles.find((vehicle) => !vehicle.vin && !vehicle.plateNo)) {
-        common_vendor.index.showToast({ title: "车架号和车牌号至少填一个", icon: "none" });
-        return false;
-      }
       if (!this.orderAmountYuan || isNaN(this.orderAmountYuan)) {
         common_vendor.index.showToast({ title: "请输入正确的运输费", icon: "none" });
+        return false;
+      }
+      if (this.form.hasInsurance && (!this.insuranceMaxAmountYuan || isNaN(this.insuranceMaxAmountYuan))) {
+        common_vendor.index.showToast({ title: "请输入正确的最高保额", icon: "none" });
         return false;
       }
       if (!this.agreedDate) {
         common_vendor.index.showToast({ title: "请选择约定送达时间", icon: "none" });
         return false;
       }
+      if (this.agreedDate < this.todayDate) {
+        common_vendor.index.showToast({ title: "约定送达时间不能早于今天", icon: "none" });
+        return false;
+      }
       return true;
     },
     buildPayload(extra = {}) {
+      const optionalVehicleEstimatedValueCent = (value) => {
+        const text = String(value ?? "").trim();
+        return text ? utils_format.yuanToCent(Number(text) * 1e4) : void 0;
+      };
       return {
         ...extra,
         ...this.form,
         orderAmountCent: utils_format.yuanToCent(this.orderAmountYuan),
+        hasInsurance: Boolean(this.form.hasInsurance),
+        insuranceMaxAmountCent: this.form.hasInsurance ? utils_format.yuanToCent(this.insuranceMaxAmountYuan) : void 0,
+        insuranceRemark: this.form.hasInsurance ? this.form.insuranceRemark || "" : "",
         agreedDeliveryTime: (/* @__PURE__ */ new Date(`${this.agreedDate}T18:00:00`)).toISOString(),
         vehicles: this.form.vehicles.map((vehicle) => ({
           brandId: vehicle.brandId || void 0,
@@ -446,7 +561,7 @@ const _sfc_main = {
           modelName: vehicle.modelName,
           vin: vehicle.vin || "",
           plateNumber: vehicle.plateNo || "",
-          estimatedValueCent: utils_format.yuanToCent(Number(vehicle.valuationTenThousandYuan || 0) * 1e4),
+          estimatedValueCent: optionalVehicleEstimatedValueCent(vehicle.valuationTenThousandYuan),
           vehicleConditionType: vehicle.vehicleConditionType || "USED"
         }))
       };
@@ -473,41 +588,43 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   } : {}, {
     e: common_vendor.o(($event) => $options.openDrawer("customer"), "c2"),
     f: common_vendor.t($options.routeText($data.form.origin, "请选择起始城市")),
-    g: common_vendor.o(($event) => $options.openRouteCityPicker("origin"), "74"),
-    h: common_vendor.t($data.form.hasPickupService ? "需要提车" : "不需要提车"),
-    i: $data.form.hasPickupService ? 1 : "",
-    j: common_vendor.o(($event) => $data.form.hasPickupService = !$data.form.hasPickupService, "e7"),
-    k: $data.form.hasPickupService
+    g: common_vendor.o(($event) => $options.openRouteCityPicker("origin"), "13"),
+    h: common_vendor.t($data.form.hasPickupService ? "需要上门提车" : "无需上门提车"),
+    i: common_vendor.t($data.form.hasPickupService ? "已开启" : "未开启"),
+    j: $data.form.hasPickupService ? 1 : "",
+    k: common_vendor.o(($event) => $data.form.hasPickupService = !$data.form.hasPickupService, "8c"),
+    l: $data.form.hasPickupService
   }, $data.form.hasPickupService ? {
-    l: common_vendor.t($data.form.origin.addressDetail || "请选择/输入提车详细地址"),
-    m: common_vendor.o(($event) => $options.openRouteAddressPicker("origin"), "92")
+    m: common_vendor.t($data.form.origin.addressDetail || "请选择提车详细位置"),
+    n: common_vendor.o(($event) => $options.openRouteAddressPicker("origin"), "b3")
   } : {}, {
-    n: common_vendor.t($options.routeText($data.form.destination, "请选择目的城市")),
-    o: common_vendor.o(($event) => $options.openRouteCityPicker("destination"), "0d"),
-    p: common_vendor.t($data.form.hasDeliveryService ? "需要送车" : "不需要送车"),
-    q: $data.form.hasDeliveryService ? 1 : "",
-    r: common_vendor.o(($event) => $data.form.hasDeliveryService = !$data.form.hasDeliveryService, "00"),
-    s: $data.form.hasDeliveryService
+    o: common_vendor.t($options.routeText($data.form.destination, "请选择目的城市")),
+    p: common_vendor.o(($event) => $options.openRouteCityPicker("destination"), "2c"),
+    q: common_vendor.t($data.form.hasDeliveryService ? "需要送车到点" : "无需送车到点"),
+    r: common_vendor.t($data.form.hasDeliveryService ? "已开启" : "未开启"),
+    s: $data.form.hasDeliveryService ? 1 : "",
+    t: common_vendor.o(($event) => $data.form.hasDeliveryService = !$data.form.hasDeliveryService, "1a"),
+    v: $data.form.hasDeliveryService
   }, $data.form.hasDeliveryService ? {
-    t: common_vendor.t($data.form.destination.addressDetail || "请选择/输入送车详细地址"),
-    v: common_vendor.o(($event) => $options.openRouteAddressPicker("destination"), "ec")
+    w: common_vendor.t($data.form.destination.addressDetail || "请选择送车详细位置"),
+    x: common_vendor.o(($event) => $options.openRouteAddressPicker("destination"), "26")
   } : {}, {
-    w: $data.form.sender.name
+    y: $data.form.sender.name
   }, $data.form.sender.name ? {
-    x: common_vendor.t($data.form.sender.name),
-    y: common_vendor.t($data.form.sender.phone)
+    z: common_vendor.t($data.form.sender.name),
+    A: common_vendor.t($data.form.sender.phone)
   } : {}, {
-    z: common_vendor.o(($event) => $options.openDrawer("sender"), "17"),
-    A: $data.form.receiver.name
+    B: common_vendor.o(($event) => $options.openDrawer("sender"), "0b"),
+    C: $data.form.receiver.name
   }, $data.form.receiver.name ? {
-    B: common_vendor.t($data.form.receiver.name),
-    C: common_vendor.t($data.form.receiver.phone)
+    D: common_vendor.t($data.form.receiver.name),
+    E: common_vendor.t($data.form.receiver.phone)
   } : {}, {
-    D: common_vendor.o(($event) => $options.openDrawer("receiver"), "ed"),
-    E: common_vendor.t($data.form.vehicles.length),
-    F: $data.form.vehicles.length > 0
+    F: common_vendor.o(($event) => $options.openDrawer("receiver"), "ad"),
+    G: common_vendor.t($data.form.vehicles.length),
+    H: $data.form.vehicles.length > 0
   }, $data.form.vehicles.length > 0 ? {
-    G: common_vendor.f($data.form.vehicles, (vehicle, index, i0) => {
+    I: common_vendor.f($data.form.vehicles, (vehicle, index, i0) => {
       return common_vendor.e({
         a: common_vendor.t($options.vehicleTitle(vehicle)),
         b: common_vendor.t(vehicle.vehicleConditionType === "NEW" ? "新车" : "二手车"),
@@ -523,11 +640,11 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       });
     })
   } : {}, {
-    H: common_vendor.o(($event) => $options.openDrawer("vehicle"), "a2"),
-    I: $data.activeDrawer === "vehicle" ? 1 : "",
-    J: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "d9"),
-    K: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "e6"),
-    L: common_vendor.f($data.form.vehicles, (vehicle, index, i0) => {
+    J: common_vendor.o(($event) => $options.openDrawer("vehicle"), "c5"),
+    K: $data.activeDrawer === "vehicle" ? 1 : "",
+    L: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "79"),
+    M: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "ef"),
+    N: common_vendor.f($data.form.vehicles, (vehicle, index, i0) => {
       return common_vendor.e({
         a: common_vendor.t(index + 1)
       }, $data.form.vehicles.length > 1 ? {
@@ -551,75 +668,95 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         p: index
       });
     }),
-    M: $data.form.vehicles.length > 1,
-    N: common_vendor.o((...args) => $options.addVehicle && $options.addVehicle(...args), "c4"),
-    O: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "35"),
-    P: $data.activeDrawer === "vehicle" ? 1 : "",
-    Q: common_vendor.t($options.transportModeLabel),
-    R: $data.transportModes,
-    S: common_vendor.o((...args) => $options.changeTransportMode && $options.changeTransportMode(...args), "95"),
-    T: $data.orderAmountYuan,
-    U: common_vendor.o(($event) => $data.orderAmountYuan = $event.detail.value, "1d"),
-    V: $data.form.hasInvoice ? 1 : "",
-    W: common_vendor.o(($event) => $data.form.hasInvoice = true, "f1"),
-    X: !$data.form.hasInvoice ? 1 : "",
-    Y: common_vendor.o(($event) => $data.form.hasInvoice = false, "c7"),
-    Z: common_vendor.t($data.agreedDate || "请选择"),
-    aa: $data.agreedDate,
-    ab: common_vendor.o((...args) => $options.changeDeliveryDate && $options.changeDeliveryDate(...args), "21"),
-    ac: $data.activeDrawer === "customer" ? 1 : "",
-    ad: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "d1"),
-    ae: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "fe"),
-    af: $data.form.customerSubject.subjectType === "ENTERPRISE" ? 1 : "",
-    ag: common_vendor.o(($event) => $data.form.customerSubject.subjectType = "ENTERPRISE", "2b"),
-    ah: $data.form.customerSubject.subjectType === "PERSONAL" ? 1 : "",
-    ai: common_vendor.o(($event) => $data.form.customerSubject.subjectType = "PERSONAL", "80"),
-    aj: $data.form.customerSubject.subjectName,
-    ak: common_vendor.o(($event) => $data.form.customerSubject.subjectName = $event.detail.value, "e0"),
-    al: $data.form.customerSubject.subjectPhone,
-    am: common_vendor.o(($event) => $data.form.customerSubject.subjectPhone = $event.detail.value, "70"),
-    an: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "0e"),
-    ao: $data.activeDrawer === "customer" ? 1 : "",
-    ap: $data.activeDrawer === "sender" ? 1 : "",
-    aq: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "d6"),
+    O: $data.form.vehicles.length > 1,
+    P: common_vendor.o((...args) => $options.addVehicle && $options.addVehicle(...args), "3a"),
+    Q: common_vendor.o((...args) => $options.confirmVehicleDrawer && $options.confirmVehicleDrawer(...args), "99"),
+    R: $data.activeDrawer === "vehicle" ? 1 : "",
+    S: common_vendor.t($options.transportModeLabel),
+    T: $data.transportModes,
+    U: common_vendor.o((...args) => $options.changeTransportMode && $options.changeTransportMode(...args), "f5"),
+    V: $data.orderAmountYuan,
+    W: common_vendor.o(($event) => $data.orderAmountYuan = $event.detail.value, "4d"),
+    X: $data.form.hasInvoice ? 1 : "",
+    Y: common_vendor.o(($event) => $data.form.hasInvoice = true, "b3"),
+    Z: !$data.form.hasInvoice ? 1 : "",
+    aa: common_vendor.o(($event) => $data.form.hasInvoice = false, "40"),
+    ab: $data.form.hasInsurance ? 1 : "",
+    ac: common_vendor.o(($event) => $data.form.hasInsurance = true, "d2"),
+    ad: !$data.form.hasInsurance ? 1 : "",
+    ae: common_vendor.o(($event) => $data.form.hasInsurance = false, "74"),
+    af: $data.form.hasInsurance
+  }, $data.form.hasInsurance ? {
+    ag: $data.insuranceMaxAmountYuan,
+    ah: common_vendor.o(($event) => $data.insuranceMaxAmountYuan = $event.detail.value, "66")
+  } : {}, {
+    ai: $data.form.hasInsurance
+  }, $data.form.hasInsurance ? {
+    aj: $data.form.insuranceRemark,
+    ak: common_vendor.o(($event) => $data.form.insuranceRemark = $event.detail.value, "06")
+  } : {}, {
+    al: common_vendor.t($data.agreedDate || "请选择"),
+    am: $data.agreedDate,
+    an: $options.todayDate,
+    ao: common_vendor.o((...args) => $options.changeDeliveryDate && $options.changeDeliveryDate(...args), "09"),
+    ap: $data.activeDrawer === "customer" ? 1 : "",
+    aq: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "64"),
     ar: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "cf"),
-    as: $data.form.sender.name,
-    at: common_vendor.o(($event) => $data.form.sender.name = $event.detail.value, "be"),
-    av: $data.form.sender.phone,
-    aw: common_vendor.o(($event) => $data.form.sender.phone = $event.detail.value, "bd"),
-    ax: common_vendor.o(($event) => $options.copyCustomerTo("sender"), "2a"),
-    ay: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "f3"),
-    az: $data.activeDrawer === "sender" ? 1 : "",
-    aA: $data.activeDrawer === "receiver" ? 1 : "",
-    aB: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "bd"),
-    aC: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "20"),
-    aD: $data.form.receiver.name,
-    aE: common_vendor.o(($event) => $data.form.receiver.name = $event.detail.value, "fd"),
-    aF: $data.form.receiver.phone,
-    aG: common_vendor.o(($event) => $data.form.receiver.phone = $event.detail.value, "1e"),
-    aH: common_vendor.o(($event) => $options.copyCustomerTo("receiver"), "92"),
-    aI: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "85"),
-    aJ: $data.activeDrawer === "receiver" ? 1 : "",
-    aK: $data.activeDrawer === "vehiclePicker" ? 1 : "",
-    aL: common_vendor.o((...args) => $options.closeVehiclePicker && $options.closeVehiclePicker(...args), "61"),
-    aM: common_vendor.o((...args) => $options.closeVehiclePicker && $options.closeVehiclePicker(...args), "29"),
-    aN: common_vendor.o([($event) => $data.vehicleSearchKeyword = $event.detail.value, (...args) => $options.onVehicleSearchInput && $options.onVehicleSearchInput(...args)], "41"),
-    aO: common_vendor.o((...args) => $options.searchVehicleModelsNow && $options.searchVehicleModelsNow(...args), "85"),
-    aP: $data.vehicleSearchKeyword,
-    aQ: $data.vehicleSearchKeyword
+    as: $data.form.customerSubject.subjectType === "ENTERPRISE" ? 1 : "",
+    at: common_vendor.o(($event) => $data.form.customerSubject.subjectType = "ENTERPRISE", "62"),
+    av: $data.form.customerSubject.subjectType === "PERSONAL" ? 1 : "",
+    aw: common_vendor.o(($event) => $data.form.customerSubject.subjectType = "PERSONAL", "c1"),
+    ax: $data.form.customerSubject.subjectName,
+    ay: common_vendor.o(($event) => $data.form.customerSubject.subjectName = $event.detail.value, "a3"),
+    az: $data.form.customerSubject.subjectPhone,
+    aA: common_vendor.o(($event) => $data.form.customerSubject.subjectPhone = $event.detail.value, "af"),
+    aB: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "be"),
+    aC: $data.activeDrawer === "customer" ? 1 : "",
+    aD: $data.activeDrawer === "sender" ? 1 : "",
+    aE: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "06"),
+    aF: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "43"),
+    aG: $data.form.sender.name,
+    aH: common_vendor.o(($event) => $data.form.sender.name = $event.detail.value, "82"),
+    aI: $data.form.sender.phone,
+    aJ: common_vendor.o(($event) => $data.form.sender.phone = $event.detail.value, "1d"),
+    aK: common_vendor.o(($event) => $options.copyCustomerTo("sender"), "b1"),
+    aL: common_vendor.o(($event) => $options.confirmContactDrawer("sender"), "51"),
+    aM: $data.activeDrawer === "sender" ? 1 : "",
+    aN: $data.activeDrawer === "receiver" ? 1 : "",
+    aO: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "db"),
+    aP: common_vendor.o((...args) => $options.closeDrawer && $options.closeDrawer(...args), "ab"),
+    aQ: $data.form.receiver.name,
+    aR: common_vendor.o(($event) => $data.form.receiver.name = $event.detail.value, "3a"),
+    aS: $data.form.receiver.phone,
+    aT: common_vendor.o(($event) => $data.form.receiver.phone = $event.detail.value, "96"),
+    aU: common_vendor.o(($event) => $options.copyCustomerTo("receiver"), "04"),
+    aV: common_vendor.o(($event) => $options.confirmContactDrawer("receiver"), "6e"),
+    aW: $data.activeDrawer === "receiver" ? 1 : "",
+    aX: $data.activeDrawer === "vehiclePicker" ? 1 : "",
+    aY: common_vendor.o((...args) => $options.closeVehiclePicker && $options.closeVehiclePicker(...args), "ba"),
+    aZ: common_vendor.o((...args) => $options.closeVehiclePicker && $options.closeVehiclePicker(...args), "12"),
+    ba: common_vendor.o([($event) => $data.vehicleSearchKeyword = $event.detail.value, (...args) => $options.onVehicleSearchInput && $options.onVehicleSearchInput(...args)], "41"),
+    bb: common_vendor.o((...args) => $options.searchVehicleModelsNow && $options.searchVehicleModelsNow(...args), "6b"),
+    bc: $data.vehicleSearchKeyword,
+    bd: $data.vehicleSearchKeyword
   }, $data.vehicleSearchKeyword ? {
-    aR: common_vendor.o((...args) => $options.clearVehicleSearch && $options.clearVehicleSearch(...args), "a0")
+    be: common_vendor.o((...args) => $options.clearVehicleSearch && $options.clearVehicleSearch(...args), "18")
   } : {}, {
-    aS: $data.vehiclePickerStep === "brand" ? 1 : "",
-    aT: $data.vehiclePickerStep === "series" ? 1 : "",
-    aU: $data.vehiclePickerStep === "model" ? 1 : "",
-    aV: $options.vehiclePickerSummary
+    bf: $data.vehiclePickerStep === "brand" ? 1 : "",
+    bg: common_vendor.o(($event) => $options.switchVehiclePickerStep("brand"), "39"),
+    bh: $data.vehiclePickerStep === "series" ? 1 : "",
+    bi: !$data.pendingVehicleSelection.brandId ? 1 : "",
+    bj: common_vendor.o(($event) => $options.switchVehiclePickerStep("series"), "b6"),
+    bk: $data.vehiclePickerStep === "model" ? 1 : "",
+    bl: !$data.pendingVehicleSelection.seriesId ? 1 : "",
+    bm: common_vendor.o(($event) => $options.switchVehiclePickerStep("model"), "3c"),
+    bn: $options.vehiclePickerSummary
   }, $options.vehiclePickerSummary ? {
-    aW: common_vendor.t($options.vehiclePickerSummary)
+    bo: common_vendor.t($options.vehiclePickerSummary)
   } : {}, {
-    aX: $data.vehicleSearchKeyword
+    bp: $data.vehicleSearchKeyword
   }, $data.vehicleSearchKeyword ? common_vendor.e({
-    aY: common_vendor.f($data.vehicleSearchResults, (item, k0, i0) => {
+    bq: common_vendor.f($data.vehicleSearchResults, (item, k0, i0) => {
       return {
         a: common_vendor.t(item.modelName),
         b: common_vendor.t(item.brandName),
@@ -628,11 +765,11 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         e: common_vendor.o(($event) => $options.selectVehicleSearchResult(item), item.modelId)
       };
     }),
-    aZ: $data.vehiclePickerLoading
+    br: $data.vehiclePickerLoading
   }, $data.vehiclePickerLoading ? {} : $data.vehicleSearchResults.length === 0 ? {} : {}, {
-    ba: $data.vehicleSearchResults.length === 0
+    bs: $data.vehicleSearchResults.length === 0
   }) : common_vendor.e({
-    bb: common_vendor.f($options.vehiclePickerItems, (item, k0, i0) => {
+    bt: common_vendor.f($options.vehiclePickerItems, (item, k0, i0) => {
       return common_vendor.e({
         a: $data.vehiclePickerStep === "brand" && item.logoUrl
       }, $data.vehiclePickerStep === "brand" && item.logoUrl ? {
@@ -647,20 +784,21 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         g: common_vendor.o(($event) => $options.selectVehiclePickerItem(item), $options.vehiclePickerItemKey(item))
       });
     }),
-    bc: $data.vehiclePickerLoading
+    bv: $data.vehiclePickerLoading
   }, $data.vehiclePickerLoading ? {} : $options.vehiclePickerItems.length === 0 ? {} : {}, {
-    bd: $options.vehiclePickerItems.length === 0
+    bw: $options.vehiclePickerItems.length === 0
   }), {
-    be: $data.activeDrawer === "vehiclePicker" ? 1 : "",
-    bf: common_vendor.sr("routeAddressMapPicker", "56ce42dc-0"),
-    bg: common_vendor.o($options.onRouteAddressSelect, "b2"),
-    bh: common_vendor.p({
+    bx: $data.activeDrawer === "vehiclePicker" ? 1 : "",
+    by: common_vendor.sr("routeAddressMapPicker", "56ce42dc-0"),
+    bz: common_vendor.o($options.onRouteAddressSelect, "a4"),
+    bA: common_vendor.p({
       title: $options.routeAddressPickerTitle,
-      placeholder: "搜索市场、园区、道路、公司名称"
+      placeholder: "搜索市场、园区、道路、公司名称",
+      ["allow-manual-address"]: false
     }),
-    bi: common_vendor.sr("routeCityPicker", "56ce42dc-1"),
-    bj: common_vendor.o($options.onRouteCitySelect, "ba"),
-    bk: common_vendor.p({
+    bB: common_vendor.sr("routeCityPicker", "56ce42dc-1"),
+    bC: common_vendor.o($options.onRouteCitySelect, "cc"),
+    bD: common_vendor.p({
       title: $options.routeCityPickerTitle
     })
   });

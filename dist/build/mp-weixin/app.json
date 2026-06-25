@@ -12,7 +12,6 @@
     "pages/order/transit-track",
     "pages/order/drivers",
     "pages/order/edit",
-    "pages/order/contract",
     "pages/order/cancel-request",
     "pages/order/cancel-handle",
     "pages/order/cancel-logs",

@@ -35,19 +35,25 @@
         </view>
       </view>
     </view>
+    <miniapp-login-sheet ref="loginSheet" @success="handleLoginSuccess" />
   </view>
 </template>
 
 <script>
-import { api, clearSession, getSession } from '../../utils/api.js';
+import { api, clearSession, getSession, openLoginPrompt } from '../../utils/api.js';
 import { reviewStatusText, statusClass } from '../../utils/format.js';
+import MiniappLoginSheet from '../../components/miniapp-login-sheet/miniapp-login-sheet.vue';
 
 export default {
+  components: {
+    MiniappLoginSheet,
+  },
   data() {
     return {
       user: {},
       profile: {},
       reviewStatus: 'UNVERIFIED',
+      dealerVerificationRequired: true,
       isLoggedIn: false,
       reviewStatusText,
     };
@@ -55,7 +61,7 @@ export default {
   computed: {
     profileDisplayName() {
       if (!this.isLoggedIn) return '立即登录';
-      return this.profile.companyName || this.profile.contactName || '未认证车商';
+      return this.profile.companyName || this.profile.contactName || '车商用户';
     },
     maskedPhone() {
       const phone = this.user.registeredPhone || this.profile.registeredPhone || '';
@@ -91,6 +97,7 @@ export default {
     },
     dealerInfoBadge() {
       if (!this.isLoggedIn) return '';
+      if (!this.dealerVerificationRequired && this.reviewStatus !== 'APPROVED') return '可选完善';
       const badgeMap = {
         UNVERIFIED: '未认证',
         PENDING: '审核中',
@@ -107,6 +114,7 @@ export default {
       this.user = {};
       this.profile = {};
       this.reviewStatus = 'UNVERIFIED';
+      this.dealerVerificationRequired = true;
     }
   },
   methods: {
@@ -117,12 +125,14 @@ export default {
         this.user = data.user || {};
         this.profile = data.profile || {};
         this.reviewStatus = data.reviewStatus;
+        this.dealerVerificationRequired = data.dealerVerificationRequired !== false;
       } catch (error) {
         if (error?.statusCode === 401) {
           this.isLoggedIn = false;
           this.user = {};
           this.profile = {};
           this.reviewStatus = 'UNVERIFIED';
+          this.dealerVerificationRequired = true;
         }
       }
     },
@@ -164,7 +174,15 @@ export default {
       this.goOrders();
     },
     goLogin() {
-      uni.navigateTo({ url: '/pages/auth/login' });
+      // #ifdef MP-WEIXIN
+      this.$refs.loginSheet?.open('登录账号');
+      return;
+      // #endif
+      openLoginPrompt({ actionText: '登录账号' });
+    },
+    async handleLoginSuccess() {
+      this.isLoggedIn = true;
+      await this.load();
     },
     handleProfileClick() {
       if (!this.isLoggedIn) this.promptLogin('登录账号');
@@ -175,6 +193,7 @@ export default {
       return false;
     },
     ensureVerified(actionText = '继续操作') {
+      if (!this.dealerVerificationRequired) return true;
       if (this.reviewStatus === 'APPROVED') return true;
       uni.showModal({
         title: '需要车商认证',
@@ -191,6 +210,10 @@ export default {
       return false;
     },
     promptLogin(actionText = '继续操作') {
+      // #ifdef MP-WEIXIN
+      this.$refs.loginSheet?.open(actionText);
+      return;
+      // #endif
       uni.showModal({
         title: '需要登录',
         content: `当前还未登录，请先登录后再${actionText}。`,

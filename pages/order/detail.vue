@@ -113,6 +113,20 @@
             order.hasInvoice ? '需要发票（线下开具）' : '不需要发票'
           }}</text>
         </view>
+        <view class="detail-row">
+          <text class="detail-label">保险</text>
+          <text class="detail-value">
+            {{
+              order.hasInsurance
+                ? `含保险，最高保额${yuanText(order.insuranceMaxAmountCent)}`
+                : '不含保险'
+            }}
+          </text>
+        </view>
+        <view class="detail-row" v-if="order.hasInsurance && order.insuranceRemark">
+          <text class="detail-label">保险备注</text>
+          <text class="detail-value">{{ order.insuranceRemark }}</text>
+        </view>
       </view>
     </view>
 
@@ -378,7 +392,6 @@
             [
               'PENDING_PAYMENT',
               'PENDING_CONFIRM',
-              'PENDING_CONTRACT',
               'PENDING_PICKUP',
               'IN_TRANSIT',
               'PENDING_RECEIPT',
@@ -408,14 +421,6 @@
           </button>
 
           <button
-            v-if="order.orderStatus === 'PENDING_CONTRACT'"
-            class="primary-btn flex-btn"
-            @click="goContract"
-          >
-            确认模拟合同
-          </button>
-
-          <button
             v-if="order.orderStatus === 'IN_TRANSIT'"
             class="secondary-btn flex-btn"
             @click="goTransitTrack"
@@ -440,13 +445,16 @@
         </view>
       </view>
     </view>
+    <miniapp-login-sheet ref="loginSheet" @success="handleLoginSuccess" />
   </view>
 </template>
 
 <script>
+import { miniappLoginPageMixin } from '../../utils/miniapp-login-page.js';
 import { api, requestWechatPayment, requireLogin } from '../../utils/api.js';
 import {
   dateText,
+  formatOrderLogAction,
   orderStatusText,
   statusClass,
   transportModeText,
@@ -455,6 +463,7 @@ import {
 } from '../../utils/format.js';
 
 export default {
+  mixins: [miniappLoginPageMixin],
   data() {
     return {
       orderId: '',
@@ -469,6 +478,7 @@ export default {
       vehicleConditionText,
       countdownTimeText: '',
       shouldShowPaymentSuccessModal: false,
+      shouldRefreshOnShow: false,
       compensationEligibility: {},
       compensationClaim: null,
     };
@@ -478,7 +488,6 @@ export default {
       return [
         'PENDING_PAYMENT',
         'PENDING_CONFIRM',
-        'PENDING_CONTRACT',
         'PENDING_PICKUP',
         'IN_TRANSIT',
       ].includes(this.order.orderStatus);
@@ -497,7 +506,6 @@ export default {
       const map = {
         PENDING_PAYMENT: '/static/order_status_pendding.svg',
         PENDING_CONFIRM: '/static/order_status_pendding.svg',
-        PENDING_CONTRACT: '/static/order_status_pendding.svg',
         PENDING_PICKUP: '/static/order_status_wait_for_pickup.svg',
         IN_TRANSIT: '/static/order_status_transport.svg',
         PENDING_RECEIPT: '/static/order_status_transport.svg',
@@ -512,7 +520,6 @@ export default {
       const map = {
         PENDING_PAYMENT: '待支付',
         PENDING_CONFIRM: '待确认',
-        PENDING_CONTRACT: '待确认',
         PENDING_PICKUP: '待提车',
         IN_TRANSIT: '运输中',
         PENDING_RECEIPT: '待收车',
@@ -526,7 +533,6 @@ export default {
       const status = this.order.orderStatus;
       if (status === 'PENDING_PAYMENT') return '待支付增值服务费';
       if (status === 'PENDING_CONFIRM') return '待承运商确认订单信息';
-      if (status === 'PENDING_CONTRACT') return '待双方签署合同';
       if (status === 'PENDING_PICKUP') return '待承运商提车';
       if (status === 'IN_TRANSIT') return '承运商正在运输车辆';
       if (status === 'PENDING_RECEIPT') return '交车单据已上传，请您确认收车';
@@ -599,7 +605,6 @@ export default {
     showContactPrimary() {
       return [
         'PENDING_CONFIRM',
-        'PENDING_CONTRACT',
         'PENDING_PICKUP',
         'IN_TRANSIT',
         'PENDING_RECEIPT',
@@ -616,6 +621,11 @@ export default {
     if (!requireLogin()) return;
     this.orderId = options.orderId;
     this.shouldShowPaymentSuccessModal = options.paymentSuccess === '1';
+    this.load();
+  },
+  onShow() {
+    if (!this.shouldRefreshOnShow || !this.orderId) return;
+    this.shouldRefreshOnShow = false;
     this.load();
   },
   methods: {
@@ -732,9 +742,6 @@ export default {
         },
       });
     },
-    goContract() {
-      uni.navigateTo({ url: `/pages/order/contract?orderId=${this.orderId}` });
-    },
     goTransitTrack() {
       uni.navigateTo({ url: `/pages/order/transit-track?orderId=${this.orderId}` });
     },
@@ -753,6 +760,31 @@ export default {
     },
     goCompensationRequest() {
       uni.navigateTo({ url: `/pages/order/compensation-request?orderId=${this.orderId}` });
+    },
+    handleCompensationRequestAction() {
+      if (this.compensationEligibility.mode === 'OFFLINE_SERVICE') {
+        this.showCompensationServiceModal();
+        return;
+      }
+      this.goCompensationRequest();
+    },
+    showCompensationServiceModal() {
+      const phone = this.compensationEligibility.customerServicePhone || '';
+      uni.showModal({
+        title: '联系平台客服',
+        content: phone
+          ? `当前赔付申请请联系平台客服：${phone}`
+          : '当前赔付申请请联系平台客服处理。',
+        confirmText: phone ? '拨打客服' : '我知道了',
+        cancelText: '取消',
+        showCancel: Boolean(phone),
+        confirmColor: '#f97316',
+        success: (res) => {
+          if (res.confirm && phone) {
+            uni.makePhoneCall({ phoneNumber: phone });
+          }
+        },
+      });
     },
     goCompensationDetail() {
       if (!this.compensationClaim?.id) return;
@@ -788,9 +820,9 @@ export default {
       }
       itemList.push('协商历史');
       actions.push(() => this.goCancelLogs());
-      if (this.compensationEligibility.eligible) {
+      if (this.compensationEligibility.actionVisible) {
         itemList.push('申请赔付');
-        actions.push(() => this.goCompensationRequest());
+        actions.push(() => this.handleCompensationRequestAction());
       }
       if (this.compensationClaim) {
         itemList.push('赔付详情');
@@ -870,38 +902,7 @@ export default {
       return 'status-warning';
     },
     logActionText(actionType) {
-      if (!actionType) return '';
-      const key = String(actionType).toUpperCase();
-      const map = {
-        CREATE: '订单提交创建',
-        CREATE_ORDER: '订单提交创建',
-        UPDATE_ORDER: '车商修改订单',
-        GUARANTEE_PAID: '担保交易服务费已支付',
-        CARRIER_CONFIRM: '承运商确认订单',
-        CONFIRM_CONTRACT: '双方确认合同',
-        CONTRACT_SIGN: '双方确认合同',
-        SET_DRIVER: '设置司机信息',
-        PICKUP: '承运商提车验车完成',
-        PICKUP_CONFIRM: '承运商提车验车完成',
-        TRANSIT_LOCATION: '上报在途位置',
-        TRANSIT_REPORT: '上报在途位置',
-        HANDOVER: '承运商已交车',
-        HANDOVER_CONFIRM: '承运商已交车',
-        RECEIPT_CONFIRM: '车商确认已收车',
-        DEALER_CONFIRM_RECEIPT: '车商确认已收车',
-        AUTO_RECEIPT: '系统自动确认收车',
-        DIRECT_CANCEL: '订单取消关闭',
-        CANCEL_REQUEST: '发起取消申请',
-        CANCEL_WITHDRAW: '撤销取消申请',
-        WITHDRAW: '撤回取消申请',
-        CANCEL_HANDLE: '取消申请已处理',
-        CANCEL_APPROVED: '同意取消申请',
-        CANCEL_REJECTED: '拒绝取消申请',
-        FORCE_CANCEL: '系统强制取消',
-        ADMIN_FORCE_CANCEL: '系统强制取消',
-        STATUS_CHANGE: '订单状态变更',
-      };
-      return map[key] || actionType;
+      return formatOrderLogAction(actionType);
     },
   },
 };

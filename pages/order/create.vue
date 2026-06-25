@@ -61,6 +61,12 @@
             >
               <text class="service-detail-name">{{ item.serviceName }}</text>
               <text v-if="item.description"> {{ item.description }}</text>
+              <text
+                v-if="item.serviceType === 'LIMITED_TIME_DELIVERY' && agreedDeliveryDateText"
+                class="service-date-text"
+              >
+                约定送达日期：{{ agreedDeliveryDateText }}
+              </text>
             </view>
           </view>
         </view>
@@ -77,9 +83,16 @@
           </view>
         </view>
 
-        <view class="payment-agreement-row" @click="paymentConsent = !paymentConsent">
-          <view class="custom-check-box" :class="{ checked: paymentConsent }">✓</view>
-          <text class="agreement-lbl">阅读并同意《担保交易服务协议》</text>
+        <view class="payment-agreement-row">
+          <view
+            class="custom-check-box"
+            :class="{ checked: paymentConsent }"
+            @click="paymentConsent = !paymentConsent"
+          >
+            ✓
+          </view>
+          <text class="agreement-lbl" @click="paymentConsent = !paymentConsent">阅读并同意</text>
+          <text class="agreement-link" @click="openGuaranteeAgreement">《担保交易服务协议》</text>
         </view>
 
         <view class="drawer-action-pay-row">
@@ -105,10 +118,6 @@ import DealerOrderForm from '../../components/dealer-order-form/dealer-order-for
 import { api, getSession, requestWechatPayment, setSession } from '../../utils/api.js';
 import { ensureDealerReady } from '../../utils/navigation.js';
 
-function tomorrowDateText() {
-  return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
-
 function blankRoute() {
   return {
     provinceId: '',
@@ -124,10 +133,14 @@ function blankRoute() {
   };
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function seedFromProfile(profile = {}, user = {}) {
   return {
     orderAmountYuan: '',
-    agreedDate: tomorrowDateText(),
+    agreedDate: '',
     form: {
       transportMode: 'LARGE_TRUCK',
       customerSubject: {
@@ -143,6 +156,8 @@ function seedFromProfile(profile = {}, user = {}) {
       receiver: { name: '', phone: '' },
       vehicles: [],
       hasInvoice: false,
+      hasInsurance: false,
+      insuranceRemark: '',
     },
   };
 }
@@ -170,6 +185,7 @@ export default {
       platformGuaranteeItems: [],
       submitting: false,
       paymentConsent: true,
+      agreedDeliveryDateText: '',
     };
   },
   computed: {
@@ -265,7 +281,15 @@ export default {
         this.loadPlatformGuaranteeService();
         return;
       }
+      this.syncAgreedDeliveryDateText();
       this.activeDrawer = 'payment';
+    },
+    syncAgreedDeliveryDateText() {
+      const form = this.$refs.orderForm;
+      this.agreedDeliveryDateText = form?.getAgreedDeliveryDateText?.() || '';
+    },
+    openGuaranteeAgreement() {
+      uni.navigateTo({ url: '/pages/agreement/detail?type=guarantee' });
     },
     async executeOrderPayment() {
       if (!this.paymentConsent) {
@@ -293,18 +317,28 @@ export default {
           return;
         }
 
-        try {
-          await requestWechatPayment(payment.paymentParams);
-        } catch (err) {
-          this.closeDrawer();
-          this.openCreatedOrderDetail(order.orderId);
-          uni.showToast({ title: '订单已创建，待支付担保费', icon: 'none' });
-          return;
+        const pollPaymentSuccess = this.waitForPaymentSuccess(payment.paymentId);
+        pollPaymentSuccess.catch(() => {});
+        const payResult = await Promise.race([
+          requestWechatPayment(payment.paymentParams)
+            .then(() => ({ source: 'client' }))
+            .catch((error) => ({ source: 'client', error })),
+          pollPaymentSuccess.then(() => ({ source: 'server' })),
+        ]);
+
+        if (payResult.error) {
+          const paid = await this.checkPaymentSuccess(payment.paymentId);
+          if (!paid) {
+            this.closeDrawer();
+            this.openCreatedOrderDetail(order.orderId);
+            uni.showToast({ title: '订单已创建，待支付担保费', icon: 'none' });
+            return;
+          }
         }
 
         try {
-          await api.syncWechatPayment(payment.paymentId);
-        } catch (err) {
+          await pollPaymentSuccess;
+        } catch (error) {
           this.closeDrawer();
           this.openCreatedOrderDetail(order.orderId);
           uni.showToast({ title: '支付已完成，正在等待确认', icon: 'none' });
@@ -320,6 +354,27 @@ export default {
     createOrderPayload() {
       const form = this.$refs.orderForm;
       return api.createOrder(form.buildPayload(this.carrierMeta));
+    },
+    async checkPaymentSuccess(paymentId) {
+      if (!paymentId) return true;
+      try {
+        const syncResult = await api.syncWechatPayment(paymentId, { silent: true });
+        if (syncResult?.payment?.paymentStatus === 'SUCCESS') return true;
+      } catch (error) {}
+      try {
+        const payment = await api.payment(paymentId, { silent: true });
+        return payment?.paymentStatus === 'SUCCESS';
+      } catch (error) {
+        return false;
+      }
+    },
+    async waitForPaymentSuccess(paymentId) {
+      if (!paymentId) return true;
+      for (let index = 0; index < 15; index += 1) {
+        if (await this.checkPaymentSuccess(paymentId)) return true;
+        await sleep(index < 5 ? 1000 : 2000);
+      }
+      throw new Error('支付结果确认超时');
     },
     openCreatedOrderDetail(orderId, paymentSuccess = false) {
       uni.setStorageSync(
@@ -493,6 +548,13 @@ export default {
   color: var(--text-main);
 }
 
+.service-date-text {
+  display: block;
+  margin-top: 4rpx;
+  color: var(--text-main);
+  font-weight: 700;
+}
+
 .payment-methods-block {
   margin-bottom: 24rpx;
 }
@@ -538,6 +600,12 @@ export default {
   margin-bottom: 24rpx;
   color: var(--text-muted);
   font-size: 24rpx;
+  flex-wrap: wrap;
+}
+
+.agreement-link {
+  color: var(--primary-color);
+  font-weight: 700;
 }
 
 .custom-check-box {

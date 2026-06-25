@@ -6,7 +6,9 @@ async function ensureDealerReady() {
     return false;
   try {
     const status = await utils_api.api.verificationStatus();
-    if (status.reviewStatus !== "APPROVED") {
+    const session = utils_api.getSession() || {};
+    const dealerVerificationRequired = status.dealerVerificationRequired !== void 0 ? status.dealerVerificationRequired !== false : session.dealerVerificationRequired !== false;
+    if (dealerVerificationRequired && status.reviewStatus !== "APPROVED") {
       common_vendor.index.redirectTo({ url: "/pages/verification/status" });
       return false;
     }

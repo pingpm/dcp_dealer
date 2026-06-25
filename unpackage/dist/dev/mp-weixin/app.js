@@ -14,7 +14,6 @@ if (!Math) {
   "./pages/order/transit-track.js";
   "./pages/order/drivers.js";
   "./pages/order/edit.js";
-  "./pages/order/contract.js";
   "./pages/order/cancel-request.js";
   "./pages/order/cancel-handle.js";
   "./pages/order/cancel-logs.js";

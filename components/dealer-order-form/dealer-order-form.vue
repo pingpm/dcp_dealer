@@ -21,44 +21,87 @@
 
     <view class="section">
       <view class="section-title">线路与服务</view>
-      <view class="route-row" @click="openRouteCityPicker('origin')">
-        <view>
-          <view class="route-label">起始城市</view>
-          <view class="route-value">{{ routeText(form.origin, '请选择起始城市') }}</view>
+      <view class="route-service-group">
+        <view class="route-node">
+          <view class="route-node-marker start">起</view>
+          <view class="route-node-body">
+            <view class="route-select-card" @click="openRouteCityPicker('origin')">
+              <view class="route-select-copy">
+                <text class="route-label">起始城市</text>
+                <text class="route-value">{{ routeText(form.origin, '请选择起始城市') }}</text>
+              </view>
+              <text class="row-arrow">❯</text>
+            </view>
+            <view class="service-switch-row" @click="form.hasPickupService = !form.hasPickupService">
+              <view class="service-switch-copy">
+                <text class="service-switch-title">提车服务</text>
+                <text class="service-switch-desc">
+                  {{ form.hasPickupService ? '需要上门提车' : '无需上门提车' }}
+                </text>
+              </view>
+              <view class="service-switch-control">
+                <text class="service-switch-state">
+                  {{ form.hasPickupService ? '已开启' : '未开启' }}
+                </text>
+                <view class="service-switch" :class="{ active: form.hasPickupService }">
+                  <text class="service-switch-thumb"></text>
+                </view>
+              </view>
+            </view>
+            <view
+              v-if="form.hasPickupService"
+              class="address-select-card"
+              @click="openRouteAddressPicker('origin')"
+            >
+              <text class="address-select-label">
+                {{ form.origin.addressDetail || '请选择提车详细位置' }}
+              </text>
+              <text class="row-arrow">❯</text>
+            </view>
+          </view>
         </view>
-        <text class="route-action">更换</text>
-      </view>
-      <view class="toggle-row" @click="form.hasPickupService = !form.hasPickupService">
-        <text>提车服务</text>
-        <text class="toggle-pill" :class="{ active: form.hasPickupService }">
-          {{ form.hasPickupService ? '需要提车' : '不需要提车' }}
-        </text>
-      </view>
-      <view v-if="form.hasPickupService" class="address-row" @click="openRouteAddressPicker('origin')">
-        <text>{{ form.origin.addressDetail || '请选择/输入提车详细地址' }}</text>
-        <text class="row-arrow">❯</text>
-      </view>
 
-      <view class="route-row destination-row" @click="openRouteCityPicker('destination')">
-        <view>
-          <view class="route-label">目的城市</view>
-          <view class="route-value">{{ routeText(form.destination, '请选择目的城市') }}</view>
+        <view class="route-node">
+          <view class="route-node-marker end">终</view>
+          <view class="route-node-body">
+            <view class="route-select-card" @click="openRouteCityPicker('destination')">
+              <view class="route-select-copy">
+                <text class="route-label">目的城市</text>
+                <text class="route-value">{{ routeText(form.destination, '请选择目的城市') }}</text>
+              </view>
+              <text class="row-arrow">❯</text>
+            </view>
+            <view
+              class="service-switch-row"
+              @click="form.hasDeliveryService = !form.hasDeliveryService"
+            >
+              <view class="service-switch-copy">
+                <text class="service-switch-title">送车服务</text>
+                <text class="service-switch-desc">
+                  {{ form.hasDeliveryService ? '需要送车到点' : '无需送车到点' }}
+                </text>
+              </view>
+              <view class="service-switch-control">
+                <text class="service-switch-state">
+                  {{ form.hasDeliveryService ? '已开启' : '未开启' }}
+                </text>
+                <view class="service-switch" :class="{ active: form.hasDeliveryService }">
+                  <text class="service-switch-thumb"></text>
+                </view>
+              </view>
+            </view>
+            <view
+              v-if="form.hasDeliveryService"
+              class="address-select-card"
+              @click="openRouteAddressPicker('destination')"
+            >
+              <text class="address-select-label">
+                {{ form.destination.addressDetail || '请选择送车详细位置' }}
+              </text>
+              <text class="row-arrow">❯</text>
+            </view>
+          </view>
         </view>
-        <text class="route-action">更换</text>
-      </view>
-      <view class="toggle-row" @click="form.hasDeliveryService = !form.hasDeliveryService">
-        <text>送车服务</text>
-        <text class="toggle-pill" :class="{ active: form.hasDeliveryService }">
-          {{ form.hasDeliveryService ? '需要送车' : '不需要送车' }}
-        </text>
-      </view>
-      <view
-        v-if="form.hasDeliveryService"
-        class="address-row"
-        @click="openRouteAddressPicker('destination')"
-      >
-        <text>{{ form.destination.addressDetail || '请选择/输入送车详细地址' }}</text>
-        <text class="row-arrow">❯</text>
       </view>
     </view>
 
@@ -153,6 +196,7 @@
                 <input
                   class="vehicle-row-input"
                   v-model="vehicle.vin"
+                  maxlength="17"
                   placeholder="车架号和车牌号至少填写一个"
                 />
               </view>
@@ -171,7 +215,7 @@
                     class="vehicle-row-input text-right"
                     type="digit"
                     v-model="vehicle.valuationTenThousandYuan"
-                    placeholder="用于后续购买保险"
+                    placeholder="必填，用于后续购买保险"
                   />
                   <text class="vehicle-value-unit">万元</text>
                 </view>
@@ -205,7 +249,7 @@
           </view>
         </view>
         <view class="drawer-add-veh-action" @click="addVehicle">增加一项</view>
-        <button class="primary-btn drawer-submit-btn" @click="closeDrawer">确定</button>
+        <button class="primary-btn drawer-submit-btn" @click="confirmVehicleDrawer">确定</button>
       </view>
     </view>
 
@@ -229,8 +273,28 @@
         </view>
       </view>
       <view class="form-line">
+        <text>保险</text>
+        <view class="inline-options">
+          <text :class="{ active: form.hasInsurance }" @click="form.hasInsurance = true">含保险</text>
+          <text :class="{ active: !form.hasInsurance }" @click="form.hasInsurance = false">不含保险</text>
+        </view>
+      </view>
+      <view class="form-line" v-if="form.hasInsurance">
+        <text>最高保额（元）</text>
+        <input
+          class="line-input"
+          type="digit"
+          v-model="insuranceMaxAmountYuan"
+          placeholder="请输入最高保额"
+        />
+      </view>
+      <view class="form-line" v-if="form.hasInsurance">
+        <text>保险备注</text>
+        <input class="line-input" v-model="form.insuranceRemark" placeholder="选填" />
+      </view>
+      <view class="form-line">
         <text>约定送达时间</text>
-        <picker mode="date" :value="agreedDate" @change="changeDeliveryDate">
+        <picker mode="date" :value="agreedDate" :start="todayDate" @change="changeDeliveryDate">
           <view class="picker-value">{{ agreedDate || '请选择' }} ❯</view>
         </picker>
       </view>
@@ -247,7 +311,7 @@
         <text class="drawer-close" @click="closeDrawer">×</text>
       </view>
       <view class="drawer-body">
-        <view class="drawer-tip-notice">姓名/企业名称和手机号用于合同签署，请确保正确</view>
+      <view class="drawer-tip-notice">姓名/企业名称和手机号将作为订单客户主体信息，请确保正确</view>
         <view class="field">
           <text class="label">类型</text>
           <view class="segmented drawer-segmented">
@@ -281,6 +345,7 @@
             class="input"
             v-model="form.customerSubject.subjectPhone"
             type="number"
+            maxlength="11"
             placeholder="请输入您的真实手机号"
           />
         </view>
@@ -309,13 +374,16 @@
             class="input"
             v-model="form.sender.phone"
             type="number"
+            maxlength="11"
             placeholder="请填写发车人手机号"
           />
         </view>
         <view class="drawer-link-action" @click="copyCustomerTo('sender')">
           使用当前客户姓名和手机号
         </view>
-        <button class="primary-btn drawer-submit-btn" @click="closeDrawer">确定</button>
+        <button class="primary-btn drawer-submit-btn" @click="confirmContactDrawer('sender')">
+          确定
+        </button>
       </view>
     </view>
 
@@ -340,13 +408,16 @@
             class="input"
             v-model="form.receiver.phone"
             type="number"
+            maxlength="11"
             placeholder="请填写收车人手机号"
           />
         </view>
         <view class="drawer-link-action" @click="copyCustomerTo('receiver')">
           使用当前客户姓名和手机号
         </view>
-        <button class="primary-btn drawer-submit-btn" @click="closeDrawer">确定</button>
+        <button class="primary-btn drawer-submit-btn" @click="confirmContactDrawer('receiver')">
+          确定
+        </button>
       </view>
     </view>
 
@@ -369,9 +440,33 @@
           <text v-if="vehicleSearchKeyword" class="vehicle-search-clear" @click="clearVehicleSearch">×</text>
         </view>
         <view class="vehicle-picker-tabs">
-          <view class="vehicle-picker-tab" :class="{ active: vehiclePickerStep === 'brand' }">品牌</view>
-          <view class="vehicle-picker-tab" :class="{ active: vehiclePickerStep === 'series' }">车系</view>
-          <view class="vehicle-picker-tab" :class="{ active: vehiclePickerStep === 'model' }">车型</view>
+          <view
+            class="vehicle-picker-tab"
+            :class="{ active: vehiclePickerStep === 'brand' }"
+            @click="switchVehiclePickerStep('brand')"
+          >
+            品牌
+          </view>
+          <view
+            class="vehicle-picker-tab"
+            :class="{
+              active: vehiclePickerStep === 'series',
+              disabled: !pendingVehicleSelection.brandId,
+            }"
+            @click="switchVehiclePickerStep('series')"
+          >
+            车系
+          </view>
+          <view
+            class="vehicle-picker-tab"
+            :class="{
+              active: vehiclePickerStep === 'model',
+              disabled: !pendingVehicleSelection.seriesId,
+            }"
+            @click="switchVehiclePickerStep('model')"
+          >
+            车型
+          </view>
         </view>
         <view v-if="vehiclePickerSummary" class="vehicle-picker-current">{{ vehiclePickerSummary }}</view>
         <scroll-view v-if="vehicleSearchKeyword" scroll-y class="vehicle-picker-list">
@@ -426,6 +521,7 @@
       ref="routeAddressMapPicker"
       :title="routeAddressPickerTitle"
       placeholder="搜索市场、园区、道路、公司名称"
+      :allow-manual-address="false"
       @select="onRouteAddressSelect"
     />
     <region-picker
@@ -488,11 +584,20 @@ function blankForm() {
     receiver: { name: '', phone: '' },
     vehicles: [blankVehicle()],
     hasInvoice: false,
+    hasInsurance: false,
+    insuranceRemark: '',
   };
 }
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value || {}));
+}
+
+function formatDateForPicker(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export default {
@@ -513,10 +618,12 @@ export default {
       routeCityTarget: 'origin',
       routeAddressTarget: 'origin',
       orderAmountYuan: '',
+      insuranceMaxAmountYuan: '',
       agreedDate: '',
       transportModes: [
         { label: '大板托运', value: 'LARGE_TRUCK' },
         { label: '小板托运', value: 'SMALL_TRUCK' },
+        { label: '代驾', value: 'DRIVING' },
       ],
       vehiclePickerIndex: -1,
       vehiclePickerStep: 'brand',
@@ -568,6 +675,9 @@ export default {
     customerSubjectTypeText() {
       return this.form.customerSubject.subjectType === 'PERSONAL' ? '个人' : '企业';
     },
+    todayDate() {
+      return formatDateForPicker();
+    },
   },
   watch: {
     seedVersion: {
@@ -608,6 +718,7 @@ export default {
         vehicles,
       };
       this.orderAmountYuan = seed.orderAmountYuan || '';
+      this.insuranceMaxAmountYuan = seed.insuranceMaxAmountYuan || '';
       this.agreedDate = seed.agreedDate || '';
     },
     openDrawer(type) {
@@ -615,6 +726,61 @@ export default {
     },
     closeDrawer() {
       this.activeDrawer = '';
+    },
+    confirmContactDrawer(role) {
+      const contact = this.form[role];
+      if (!contact) return;
+      const roleText = role === 'sender' ? '发车人' : '收车人';
+      contact.name = (contact.name || '').trim();
+      contact.phone = (contact.phone || '').trim();
+      if (!contact.name) {
+        uni.showToast({ title: `请填写${roleText}姓名`, icon: 'none' });
+        return;
+      }
+      if (!contact.phone) {
+        uni.showToast({ title: `请填写${roleText}手机号`, icon: 'none' });
+        return;
+      }
+      this.closeDrawer();
+    },
+    normalizeVehicle(vehicle) {
+      if (!vehicle) return;
+      vehicle.vin = (vehicle.vin || '').trim();
+      vehicle.plateNo = (vehicle.plateNo || '').trim();
+      vehicle.valuationTenThousandYuan = String(vehicle.valuationTenThousandYuan ?? '').trim();
+    },
+    validateVehicles() {
+      if (this.form.vehicles.length === 0) {
+        uni.showToast({ title: '请添加车辆信息', icon: 'none' });
+        return false;
+      }
+      for (const vehicle of this.form.vehicles) {
+        this.normalizeVehicle(vehicle);
+      }
+      const invalidVehicle = this.form.vehicles.find(
+        (vehicle) => !vehicle.brandName || !vehicle.seriesName || !vehicle.modelName,
+      );
+      if (invalidVehicle) {
+        uni.showToast({ title: '请完整选择车辆车型', icon: 'none' });
+        return false;
+      }
+      if (this.form.vehicles.find((vehicle) => !vehicle.vin && !vehicle.plateNo)) {
+        uni.showToast({ title: '车架号和车牌号至少填一个', icon: 'none' });
+        return false;
+      }
+      if (this.form.vehicles.find((vehicle) => String(vehicle.vin || '').length > 17)) {
+        uni.showToast({ title: '车架号最多输入17位', icon: 'none' });
+        return false;
+      }
+      if (this.form.vehicles.find((vehicle) => vehicle.valuationTenThousandYuan === '')) {
+        uni.showToast({ title: '请填写车辆估值', icon: 'none' });
+        return false;
+      }
+      return true;
+    },
+    confirmVehicleDrawer() {
+      if (!this.validateVehicles()) return;
+      this.closeDrawer();
     },
     routeText(route, placeholder) {
       return [route.provinceName, route.cityName].filter(Boolean).join(' ') || placeholder;
@@ -670,7 +836,15 @@ export default {
       this.form.transportMode = this.transportModes[event.detail.value].value;
     },
     changeDeliveryDate(event) {
-      this.agreedDate = event.detail.value;
+      const selectedDate = event.detail.value;
+      if (selectedDate && selectedDate < this.todayDate) {
+        uni.showToast({ title: '约定送达时间不能早于今天', icon: 'none' });
+        return;
+      }
+      this.agreedDate = selectedDate;
+    },
+    getAgreedDeliveryDateText() {
+      return this.agreedDate || '';
     },
     addVehicle() {
       this.form.vehicles.push(blankVehicle());
@@ -697,7 +871,7 @@ export default {
       await this.loadVehicleBrands();
     },
     closeVehiclePicker() {
-      this.activeDrawer = '';
+      this.activeDrawer = 'vehicle';
     },
     copyCustomerTo(role) {
       if (!this.form.customerSubject.subjectName) {
@@ -737,6 +911,35 @@ export default {
       } finally {
         this.vehiclePickerLoading = false;
       }
+    },
+    async switchVehiclePickerStep(step) {
+      this.clearVehicleSearch();
+      if (step === 'brand') {
+        this.vehiclePickerStep = 'brand';
+        await this.loadVehicleBrands();
+        return;
+      }
+      if (step === 'series') {
+        if (!this.pendingVehicleSelection.brandId) {
+          uni.showToast({ title: '请先选择品牌', icon: 'none' });
+          return;
+        }
+        this.pendingVehicleSelection.seriesId = '';
+        this.pendingVehicleSelection.seriesName = '';
+        this.pendingVehicleSelection.modelId = '';
+        this.pendingVehicleSelection.modelName = '';
+        this.vehiclePickerStep = 'series';
+        await this.loadVehicleSeries(this.pendingVehicleSelection.brandId);
+        return;
+      }
+      if (!this.pendingVehicleSelection.seriesId) {
+        uni.showToast({ title: '请先选择车系', icon: 'none' });
+        return;
+      }
+      this.pendingVehicleSelection.modelId = '';
+      this.pendingVehicleSelection.modelName = '';
+      this.vehiclePickerStep = 'model';
+      await this.loadVehicleModels(this.pendingVehicleSelection.seriesId);
     },
     vehiclePickerItemKey(item) {
       return item.id || item.brandName || item.seriesName || item.modelName;
@@ -836,12 +1039,22 @@ export default {
         uni.showToast({ title: '请选择目的城市', icon: 'none' });
         return false;
       }
-      if (this.form.hasPickupService && !this.form.origin.addressDetail) {
-        uni.showToast({ title: '请填写提车地址', icon: 'none' });
+      if (
+        this.form.hasPickupService &&
+        (!this.form.origin.addressDetail || !this.form.origin.longitude || !this.form.origin.latitude)
+      ) {
+        uni.showToast({ title: '请选择提车位置', icon: 'none' });
         return false;
       }
-      if (this.form.hasDeliveryService && !this.form.destination.addressDetail) {
-        uni.showToast({ title: '请填写送车地址', icon: 'none' });
+      if (
+        this.form.hasDeliveryService &&
+        (
+          !this.form.destination.addressDetail ||
+          !this.form.destination.longitude ||
+          !this.form.destination.latitude
+        )
+      ) {
+        uni.showToast({ title: '请选择送车位置', icon: 'none' });
         return false;
       }
       if (!this.form.sender.name || !this.form.sender.phone) {
@@ -852,32 +1065,39 @@ export default {
         uni.showToast({ title: '请填写收车人信息', icon: 'none' });
         return false;
       }
-      const invalidVehicle = this.form.vehicles.find(
-        (vehicle) => !vehicle.brandName || !vehicle.seriesName || !vehicle.modelName,
-      );
-      if (this.form.vehicles.length === 0 || invalidVehicle) {
-        uni.showToast({ title: '请完整选择车辆车型', icon: 'none' });
-        return false;
-      }
-      if (this.form.vehicles.find((vehicle) => !vehicle.vin && !vehicle.plateNo)) {
-        uni.showToast({ title: '车架号和车牌号至少填一个', icon: 'none' });
-        return false;
-      }
+      if (!this.validateVehicles()) return false;
       if (!this.orderAmountYuan || isNaN(this.orderAmountYuan)) {
         uni.showToast({ title: '请输入正确的运输费', icon: 'none' });
+        return false;
+      }
+      if (this.form.hasInsurance && (!this.insuranceMaxAmountYuan || isNaN(this.insuranceMaxAmountYuan))) {
+        uni.showToast({ title: '请输入正确的最高保额', icon: 'none' });
         return false;
       }
       if (!this.agreedDate) {
         uni.showToast({ title: '请选择约定送达时间', icon: 'none' });
         return false;
       }
+      if (this.agreedDate < this.todayDate) {
+        uni.showToast({ title: '约定送达时间不能早于今天', icon: 'none' });
+        return false;
+      }
       return true;
     },
     buildPayload(extra = {}) {
+      const optionalVehicleEstimatedValueCent = (value) => {
+        const text = String(value ?? '').trim();
+        return text ? yuanToCent(Number(text) * 10000) : undefined;
+      };
       return {
         ...extra,
         ...this.form,
         orderAmountCent: yuanToCent(this.orderAmountYuan),
+        hasInsurance: Boolean(this.form.hasInsurance),
+        insuranceMaxAmountCent: this.form.hasInsurance
+          ? yuanToCent(this.insuranceMaxAmountYuan)
+          : undefined,
+        insuranceRemark: this.form.hasInsurance ? this.form.insuranceRemark || '' : '',
         agreedDeliveryTime: new Date(`${this.agreedDate}T18:00:00`).toISOString(),
         vehicles: this.form.vehicles.map((vehicle) => ({
           brandId: vehicle.brandId || undefined,
@@ -888,7 +1108,7 @@ export default {
           modelName: vehicle.modelName,
           vin: vehicle.vin || '',
           plateNumber: vehicle.plateNo || '',
-          estimatedValueCent: yuanToCent(Number(vehicle.valuationTenThousandYuan || 0) * 10000),
+          estimatedValueCent: optionalVehicleEstimatedValueCent(vehicle.valuationTenThousandYuan),
           vehicleConditionType: vehicle.vehicleConditionType || 'USED',
         })),
       };
@@ -1006,9 +1226,6 @@ export default {
   margin: 18rpx 0 0;
 }
 
-.route-row,
-.toggle-row,
-.address-row,
 .form-line {
   display: flex;
   align-items: center;
@@ -1018,12 +1235,84 @@ export default {
   border-bottom: 1rpx solid #f1f1f1;
 }
 
-.route-row {
-  padding: 12rpx 0 18rpx;
+.route-service-group {
+  display: flex;
+  flex-direction: column;
+  gap: 26rpx;
+  margin-top: 12rpx;
 }
 
-.destination-row {
-  margin-top: 28rpx;
+.route-node {
+  position: relative;
+  display: flex;
+  gap: 18rpx;
+}
+
+.route-node:not(:last-child)::after {
+  position: absolute;
+  top: 56rpx;
+  bottom: -22rpx;
+  left: 23rpx;
+  width: 2rpx;
+  background: #ffe1d2;
+  content: "";
+}
+
+.route-node-marker {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 22rpx;
+  font-weight: 800;
+  line-height: 48rpx;
+  text-align: center;
+}
+
+.route-node-marker.start {
+  background: var(--primary-color);
+}
+
+.route-node-marker.end {
+  background: #334155;
+}
+
+.route-node-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.route-select-card,
+.address-select-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  border: 1rpx solid #eceff3;
+  border-radius: 16rpx;
+  background: #ffffff;
+}
+
+.route-select-card {
+  min-height: 92rpx;
+  padding: 16rpx 20rpx;
+}
+
+.route-select-card:active,
+.address-select-card:active,
+.service-switch-row:active {
+  opacity: 0.74;
+}
+
+.route-select-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6rpx;
+  min-width: 0;
 }
 
 .route-label {
@@ -1032,10 +1321,12 @@ export default {
 }
 
 .route-value {
-  margin-top: 6rpx;
+  overflow: hidden;
   color: var(--text-main);
   font-size: 30rpx;
   font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .route-action,
@@ -1046,24 +1337,96 @@ export default {
   font-weight: 700;
 }
 
-.toggle-pill {
-  min-width: 150rpx;
-  padding: 10rpx 18rpx;
-  border-radius: 999rpx;
-  background: #f5f5f5;
-  color: #777777;
-  text-align: center;
-  font-size: 24rpx;
+.service-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  min-height: 76rpx;
+  margin-top: 14rpx;
+  padding: 0 18rpx;
+  border: 1rpx solid #edf0f4;
+  border-radius: 16rpx;
+  background: #fafafa;
 }
 
-.toggle-pill.active {
-  background: var(--primary-light);
-  color: var(--primary-color);
+.service-switch-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4rpx;
+  min-width: 0;
 }
 
-.address-row {
+.service-switch-title {
   color: var(--text-main);
   font-size: 26rpx;
+  font-weight: 700;
+}
+
+.service-switch-desc {
+  color: var(--text-weak);
+  font-size: 22rpx;
+}
+
+.service-switch-control {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-shrink: 0;
+}
+
+.service-switch-state {
+  color: #9ca3af;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.service-switch {
+  position: relative;
+  width: 76rpx;
+  height: 44rpx;
+  border-radius: 999rpx;
+  background: #d1d5db;
+  transition: background 0.2s ease;
+}
+
+.service-switch.active {
+  background: var(--primary-color);
+}
+
+.service-switch-thumb {
+  position: absolute;
+  top: 4rpx;
+  left: 4rpx;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 3rpx 8rpx rgba(15, 23, 42, 0.16);
+  transition: transform 0.2s ease;
+}
+
+.service-switch.active .service-switch-thumb {
+  transform: translateX(32rpx);
+}
+
+.address-select-card {
+  min-height: 72rpx;
+  margin-top: 14rpx;
+  padding: 0 18rpx;
+  background: #f8fafc;
+}
+
+.address-select-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-main);
+  font-size: 26rpx;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .row-arrow {
@@ -1418,12 +1781,17 @@ export default {
   font-size: 24rpx;
   line-height: 56rpx;
   text-align: center;
+  transition: all 0.2s ease;
 }
 
 .vehicle-picker-tab.active {
   background: var(--primary-light);
   color: var(--primary-color);
   font-weight: 700;
+}
+
+.vehicle-picker-tab.disabled {
+  color: #c7cbd1;
 }
 
 .vehicle-picker-current,

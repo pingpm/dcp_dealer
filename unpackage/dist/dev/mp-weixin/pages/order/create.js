@@ -4,9 +4,6 @@ const utils_api = require("../../utils/api.js");
 const utils_navigation = require("../../utils/navigation.js");
 const common_assets = require("../../common/assets.js");
 const DealerOrderForm = () => "../../components/dealer-order-form/dealer-order-form.js";
-function tomorrowDateText() {
-  return new Date(Date.now() + 24 * 60 * 60 * 1e3).toISOString().slice(0, 10);
-}
 function blankRoute() {
   return {
     provinceId: "",
@@ -21,10 +18,13 @@ function blankRoute() {
     latitude: ""
   };
 }
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 function seedFromProfile(profile = {}, user = {}) {
   return {
     orderAmountYuan: "",
-    agreedDate: tomorrowDateText(),
+    agreedDate: "",
     form: {
       transportMode: "LARGE_TRUCK",
       customerSubject: {
@@ -39,7 +39,9 @@ function seedFromProfile(profile = {}, user = {}) {
       sender: { name: "", phone: "" },
       receiver: { name: "", phone: "" },
       vehicles: [],
-      hasInvoice: false
+      hasInvoice: false,
+      hasInsurance: false,
+      insuranceRemark: ""
     }
   };
 }
@@ -65,7 +67,8 @@ const _sfc_main = {
       },
       platformGuaranteeItems: [],
       submitting: false,
-      paymentConsent: true
+      paymentConsent: true,
+      agreedDeliveryDateText: ""
     };
   },
   computed: {
@@ -164,7 +167,16 @@ const _sfc_main = {
         this.loadPlatformGuaranteeService();
         return;
       }
+      this.syncAgreedDeliveryDateText();
       this.activeDrawer = "payment";
+    },
+    syncAgreedDeliveryDateText() {
+      var _a;
+      const form = this.$refs.orderForm;
+      this.agreedDeliveryDateText = ((_a = form == null ? void 0 : form.getAgreedDeliveryDateText) == null ? void 0 : _a.call(form)) || "";
+    },
+    openGuaranteeAgreement() {
+      common_vendor.index.navigateTo({ url: "/pages/agreement/detail?type=guarantee" });
     },
     async executeOrderPayment() {
       if (!this.paymentConsent) {
@@ -189,17 +201,25 @@ const _sfc_main = {
           common_vendor.index.showToast({ title: "订单已创建，发起支付失败", icon: "none" });
           return;
         }
-        try {
-          await utils_api.requestWechatPayment(payment.paymentParams);
-        } catch (err) {
-          this.closeDrawer();
-          this.openCreatedOrderDetail(order.orderId);
-          common_vendor.index.showToast({ title: "订单已创建，待支付担保费", icon: "none" });
-          return;
+        const pollPaymentSuccess = this.waitForPaymentSuccess(payment.paymentId);
+        pollPaymentSuccess.catch(() => {
+        });
+        const payResult = await Promise.race([
+          utils_api.requestWechatPayment(payment.paymentParams).then(() => ({ source: "client" })).catch((error) => ({ source: "client", error })),
+          pollPaymentSuccess.then(() => ({ source: "server" }))
+        ]);
+        if (payResult.error) {
+          const paid = await this.checkPaymentSuccess(payment.paymentId);
+          if (!paid) {
+            this.closeDrawer();
+            this.openCreatedOrderDetail(order.orderId);
+            common_vendor.index.showToast({ title: "订单已创建，待支付担保费", icon: "none" });
+            return;
+          }
         }
         try {
-          await utils_api.api.syncWechatPayment(payment.paymentId);
-        } catch (err) {
+          await pollPaymentSuccess;
+        } catch (error) {
           this.closeDrawer();
           this.openCreatedOrderDetail(order.orderId);
           common_vendor.index.showToast({ title: "支付已完成，正在等待确认", icon: "none" });
@@ -214,6 +234,33 @@ const _sfc_main = {
     createOrderPayload() {
       const form = this.$refs.orderForm;
       return utils_api.api.createOrder(form.buildPayload(this.carrierMeta));
+    },
+    async checkPaymentSuccess(paymentId) {
+      var _a;
+      if (!paymentId)
+        return true;
+      try {
+        const syncResult = await utils_api.api.syncWechatPayment(paymentId, { silent: true });
+        if (((_a = syncResult == null ? void 0 : syncResult.payment) == null ? void 0 : _a.paymentStatus) === "SUCCESS")
+          return true;
+      } catch (error) {
+      }
+      try {
+        const payment = await utils_api.api.payment(paymentId, { silent: true });
+        return (payment == null ? void 0 : payment.paymentStatus) === "SUCCESS";
+      } catch (error) {
+        return false;
+      }
+    },
+    async waitForPaymentSuccess(paymentId) {
+      if (!paymentId)
+        return true;
+      for (let index = 0; index < 15; index += 1) {
+        if (await this.checkPaymentSuccess(paymentId))
+          return true;
+        await sleep(index < 5 ? 1e3 : 2e3);
+      }
+      throw new Error("支付结果确认超时");
     },
     openCreatedOrderDetail(orderId, paymentSuccess = false) {
       common_vendor.index.setStorageSync(
@@ -255,16 +302,22 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       }, item.description ? {
         c: common_vendor.t(item.description)
       } : {}, {
-        d: item.serviceType
+        d: item.serviceType === "LIMITED_TIME_DELIVERY" && $data.agreedDeliveryDateText
+      }, item.serviceType === "LIMITED_TIME_DELIVERY" && $data.agreedDeliveryDateText ? {
+        e: common_vendor.t($data.agreedDeliveryDateText)
+      } : {}, {
+        f: item.serviceType
       });
     }),
     l: common_assets._imports_0$2,
     m: $data.paymentConsent ? 1 : "",
-    n: common_vendor.o(($event) => $data.paymentConsent = !$data.paymentConsent, "76"),
-    o: common_vendor.t($options.totalPayAmountYuan),
-    p: $data.submitting,
-    q: common_vendor.o((...args) => $options.executeOrderPayment && $options.executeOrderPayment(...args), "db"),
-    r: $data.activeDrawer === "payment" ? 1 : ""
+    n: common_vendor.o(($event) => $data.paymentConsent = !$data.paymentConsent, "4f"),
+    o: common_vendor.o(($event) => $data.paymentConsent = !$data.paymentConsent, "25"),
+    p: common_vendor.o((...args) => $options.openGuaranteeAgreement && $options.openGuaranteeAgreement(...args), "65"),
+    q: common_vendor.t($options.totalPayAmountYuan),
+    r: $data.submitting,
+    s: common_vendor.o((...args) => $options.executeOrderPayment && $options.executeOrderPayment(...args), "d0"),
+    t: $data.activeDrawer === "payment" ? 1 : ""
   });
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

@@ -39,6 +39,48 @@
 .upload-card.disabled {
   opacity: 0.6;
 }
+.upload-card-icon {
+  position: relative;
+  width: 48rpx;
+  height: 48rpx;
+  margin-bottom: 10rpx;
+  border-radius: 999rpx;
+}
+.upload-card-icon::before,
+.upload-card-icon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 999rpx;
+  background: #f97316;
+  transform: translate(-50%, -50%);
+}
+.upload-card-icon::before {
+  width: 34rpx;
+  height: 6rpx;
+}
+.upload-card-icon::after {
+  width: 6rpx;
+  height: 34rpx;
+}
+.upload-card-icon.loading {
+  border: 5rpx solid #fed7aa;
+  border-top-color: #f97316;
+  animation: upload-icon-spin 0.8s linear infinite;
+}
+.upload-card-icon.loading::before,
+.upload-card-icon.loading::after {
+  display: none;
+}
+@keyframes upload-icon-spin {
+from {
+    transform: rotate(0deg);
+}
+to {
+    transform: rotate(360deg);
+}
+}
 .example-card {
   position: relative;
   aspect-ratio: 1;

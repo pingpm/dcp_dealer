@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": "取消订单",
   "usingComponents": {
-    "dealer-icon": "../../components/dealer-icon/dealer-icon"
+    "dealer-icon": "../../components/dealer-icon/dealer-icon",
+    "miniapp-login-sheet": "../../components/miniapp-login-sheet/miniapp-login-sheet"
   }
 }
